@@ -38,7 +38,7 @@ var currentFormat = "PNG", jpgQuality = 85, avifQuality = 78, toastTimeout = nul
           actionBtnHtml = '<span class="text-xs font-mono text-[#4F46E5] font-semibold">' + item.progress + '%</span>';
         } else if (item.status === 'completed') {
           statusBadge = '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#10B981] border border-emerald-200 font-bold text-[11px]">Completed → ' + outSize + '</span>';
-          actionBtnHtml = '<button type="button" onclick="downloadConvertedFile(\'' + item.id + '\')" class="px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-emerald-600 text-white font-bold text-xs shadow-sm transition-soft inline-flex items-center gap-1">' +
+          actionBtnHtml = '<button type="button" aria-label="Download ' + currentFormat + ' for ' + item.name + '" onclick="downloadConvertedFile(\'' + item.id + '\')" class="px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-emerald-600 text-white font-bold text-xs shadow-sm transition-soft inline-flex items-center gap-1">' +
             '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>' +
             '<span>Download ' + currentFormat + '</span></button>';
         } else if (item.status === 'error-invalid') {
@@ -49,7 +49,9 @@ var currentFormat = "PNG", jpgQuality = 85, avifQuality = 78, toastTimeout = nul
           progressHtml = '<p class="text-[11px] text-amber-800 mt-1 font-medium">' + item.errorMessage + '</p>';
         }
 
-        html += '<div class="file-row-item rounded-2xl border border-[#E2E8F0] bg-white p-3.5 flex items-center justify-between gap-4 hover:border-indigo-200 transition-soft">' +
+        var mobileStatus = item.status === 'queued' ? (busy ? 'Queued' : 'Ready') : item.status === 'converting' ? 'Converting' : item.status === 'completed' ? 'Done' : 'Error';
+        var mobileProgress = item.status === 'converting' ? '<span class="file-mobile-progress" role="progressbar" aria-label="Converting image"><span></span></span>' : '';
+        html += '<div data-status="' + item.status + '" class="file-row-item rounded-2xl border border-[#E2E8F0] bg-white p-3.5 flex items-center justify-between gap-4 hover:border-indigo-200 transition-soft">' +
           '<div class="file-row-info flex items-center gap-3.5 min-w-0 flex-1">' +
             '<img src="' + thumbSrc + '" alt="Thumbnail for ' + item.name + '" class="file-row-thumbnail w-14 h-11 rounded-xl object-cover border border-slate-200 shrink-0" />' +
             '<div class="file-row-details min-w-0 flex-1">' +
@@ -68,6 +70,7 @@ var currentFormat = "PNG", jpgQuality = 85, avifQuality = 78, toastTimeout = nul
             '</div>' +
           '</div>' +
           '<div class="file-row-actions flex items-center gap-2 shrink-0">' +
+            '<span class="file-mobile-status">' + mobileStatus + mobileProgress + '</span>' +
             statusBadge +
             actionBtnHtml +
             '<button type="button" onclick="removeFileById(\'' + item.id + '\')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-soft" title="Remove file" aria-label="Remove ' + item.name + '">' +

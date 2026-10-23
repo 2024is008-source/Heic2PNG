@@ -5,11 +5,13 @@ import {canonicalPageUrl} from '../lib/urls.mjs';
 import {pagePaths} from '../lib/page-routes.mjs';
 import {createStructuredData,serializeStructuredData} from '../lib/structured-data.mjs';
 import AdSlot from '../components/AdSlot.astro';
+import AnalyticsConsent from '../components/AnalyticsConsent.astro';
 import '../generated/styles.css';
 import '../styles/approved.css';
 import '../styles/theme.css';
 import fontFaces from '../../public/fonts/fonts.css?raw';
 import themeUrl from '../../public/theme.js?url&no-inline';
+import analyticsUrl from '../../public/analytics.js?url&no-inline';
 export async function getStaticPaths() {
  const articles=(await getCollection('blog')).filter(e=>!e.data.draft);
  return [...pagePaths.map(path=>({params:{path:path.slice(1)||undefined}})),...articles.map(entry=>({params:{path:'blog/'+entry.data.slug},props:{entry}}))];
@@ -62,7 +64,7 @@ const schema=createStructuredData({path,title,description,entry,noindex});
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script is:inline src={themeUrl}></script>
-  <script is:inline defer src="/analytics.js" data-enabled={String(import.meta.env.PROD && import.meta.env.PUBLIC_GA4_ENABLED==='true')} data-events={String(import.meta.env.PUBLIC_GA4_EVENTS==='true')}></script>
+  <script is:inline defer src={analyticsUrl} data-enabled={String(import.meta.env.PROD && import.meta.env.PUBLIC_GA4_ENABLED==='true')}></script>
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
@@ -95,6 +97,7 @@ const schema=createStructuredData({path,title,description,entry,noindex});
   {parts.map((part,i)=>i%2?<AdSlot html={part}/>:<Fragment set:html={part}/>)}
   {Content&&<Content />}
   <Fragment set:html={after} />
+  <AnalyticsConsent />
   <script src="../generated/client.ts"></script>
  </body>
 </html>

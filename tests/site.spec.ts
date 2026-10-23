@@ -90,3 +90,27 @@ test('blog filters, navigation, menus, FAQ and honest contact state',async({page
  await page.locator('#mobile-nav-drawer a[href="/heic-to-jpg"]').click();await expect(page).toHaveURL(/heic-to-jpg/);await page.reload();await expect(page.locator('#converter-hero-h1')).toHaveText('HEIC to JPG Converter');
  await page.goto('/contact');await page.locator('#contact-name').fill('Test');await page.locator('#contact-email').fill('test@example.com');await page.locator('#contact-message').fill('Question');await page.locator('button[type="submit"]').click();await expect(page.locator('#app-toast')).toContainText('Opening your email app');await expect(page.locator('#contact-error-box')).toBeHidden();
 });
+
+test('both ZIP actions stay disabled until every selected image has converted successfully',async({page})=>{
+ await page.goto('/');await upload(page,[fixture,fixture]);
+ const zipButtons=page.locator('[data-onclick^="downloadAllAsZip"]');expect(await zipButtons.count()).toBeGreaterThanOrEqual(2);
+ for(const button of await zipButtons.all())await expect(button).toBeDisabled();
+ await page.locator('.file-row-item').first().getByRole('button',{name:'Convert',exact:true}).click();
+ await expect(page.locator('#btn-primary-convert')).toBeEnabled({timeout:100000});await expect(page.locator('#success-banner-title')).toContainText('1 of 2');
+ for(const button of await zipButtons.all())await expect(button).toBeDisabled();
+ const downloads:string[]=[];page.on('download',d=>downloads.push(d.suggestedFilename()));
+ await page.evaluate(()=>(window as any).downloadAllAsZip());expect(downloads).toEqual([]);
+ await page.locator('.file-row-item').last().getByRole('button',{name:'Convert',exact:true}).click();
+ for(const button of await zipButtons.all())await expect(button).toBeDisabled();
+ await expect(page.locator('#btn-primary-convert')).toBeEnabled({timeout:100000});
+ for(const button of await zipButtons.all())await expect(button).toBeEnabled();
+ const downloading=page.waitForEvent('download');await page.locator('#btn-zip-banner-text').click();
+ const archive=await JSZip.loadAsync(await fs.readFile((await (await downloading).path())!));expect(Object.keys(archive.files)).toEqual(['example.png','example (2).png']);
+ await page.locator('#real-file-input').setInputFiles({name:'broken.heic',mimeType:'image/heic',buffer:Buffer.from([0,0,0,24,...Buffer.from('ftypheic'),0,0,0,0,...Buffer.from('heicmif1')])});
+ await expect(page.locator('.file-row-item')).toHaveCount(3);
+ for(const button of await zipButtons.all())await expect(button).toBeDisabled();
+ await page.locator('#btn-primary-convert').click();await expect(page.locator('#btn-primary-convert')).toBeEnabled({timeout:100000});await expect(page.locator('#converter-error-banner')).toBeVisible();
+ for(const button of await zipButtons.all())await expect(button).toBeDisabled();
+ await page.getByRole('button',{name:'Remove broken.heic',exact:true}).click();
+ for(const button of await zipButtons.all())await expect(button).toBeEnabled();
+});

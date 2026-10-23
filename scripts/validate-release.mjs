@@ -10,6 +10,11 @@ for(const url of urls){const u=new URL(url);assert.equal(u.origin,'https://heic2
  const d=parseHTML(fs.readFileSync(path.join(root,u.pathname,'index.html'),'utf8')).document;
  assert.equal(d.querySelectorAll('link[rel="canonical"]').length,1);assert.equal(d.querySelector('link[rel="canonical"]').getAttribute('href'),url);
  assert.ok(!/noindex/i.test(d.querySelector('meta[name="robots"]')?.getAttribute('content')||''));assert.equal(d.querySelectorAll('h1').length,1);
+ const analytics=[...d.querySelectorAll('script[src]')].filter(s=>/(?:^|\/)analytics(?:\.[^/]+)?\.js$/.test(s.getAttribute('src')));
+ assert.equal(analytics.length,1,'Expected one external analytics initializer: '+url);
+ assert.ok(['true','false'].includes(analytics[0].getAttribute('data-enabled')));
+ assert.ok(!analytics[0].hasAttribute('data-auto-countries')&&!analytics[0].hasAttribute('data-events'));
+ assert.equal(d.querySelectorAll('script[src*="googletagmanager.com"]').length,0,'Google must be inserted only after permission');
  for(const e of d.querySelectorAll('script[src],link[rel="stylesheet"],link[rel="icon"],link[rel="manifest"],image[href]')){const src=e.getAttribute('src')||e.getAttribute('href');if(src.startsWith('/'))assert.ok(fs.existsSync(path.join(root,src)),src);}
 }
 assert.ok(fs.readFileSync(root+'/robots.txt','utf8').includes('Sitemap: https://heic2png.site/sitemap.xml'));

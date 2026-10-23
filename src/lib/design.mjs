@@ -100,6 +100,8 @@ export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail
    dz.parentElement.classList.add('converter-card-body');
    const fileToolbar=document.getElementById('file-list-section').firstElementChild;
    fileToolbar.classList.add('file-list-toolbar');fileToolbar.firstElementChild.classList.add('file-list-summary');
+   const queueHeading=document.getElementById('file-count-label').parentElement;queueHeading.classList.add('file-list-heading');
+   queueHeading.innerHTML='<span class="file-list-desktop-label">Selected photos (</span><span id="file-count-label">0</span><span class="file-list-desktop-label">)</span><span class="file-list-mobile-label"> files</span>';
    document.getElementById('settings-summary-format').parentElement.parentElement.classList.add('converter-settings-summary');
  }
  for(const el of document.querySelectorAll('main > section, main > div')) {
@@ -148,6 +150,12 @@ export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail
  if(path==='/terms')for(const el of document.querySelectorAll('#view-terms span'))if(el.textContent.trim()==='Document Template')el.textContent='Legal';
  if(path==='/privacy')updatePrivacyPolicy(document);
  wireNavigation(document);
+ const privacyLink=document.querySelector('footer a[href="/privacy"]');
+ if(privacyLink){
+   const item=document.createElement('li');
+   item.innerHTML='<a href="/privacy/#analytics-preferences" data-analytics-settings aria-controls="analytics-consent" aria-expanded="false">Privacy choices</a>';
+   privacyLink.closest('ul').append(item);
+ }
  for(const span of document.querySelectorAll('#content-home-png span')){
   if(span.textContent.trim()==='Download ZIP'||span.classList.contains('text-slate-300'))span.parentElement.classList.add('mobile-wrap-illustration');
  }
