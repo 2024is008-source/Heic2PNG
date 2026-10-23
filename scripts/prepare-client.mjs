@@ -2,7 +2,7 @@ import fs from 'node:fs';
 let ui=fs.readFileSync('src/design/helpers.js','utf8');
 ui=ui.replaceAll('onclick=', 'data-onclick=');
 ui=ui.replace("function handleDimensionInput(axis, val) {", "function handleDimensionInput(axis, val) { customAxis = axis;");
-ui=ui.replace('var thumbSrc = getThumbnailSvgDataUri(item.theme);',`var thumbSrc = item.preview || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="60"%3E%3Crect width="80" height="60" fill="%23F1F5F9"/%3E%3C/svg%3E';`);
+ui=ui.replace('var thumbSrc = getThumbnailSvgDataUri(item.theme);',`var thumbSrc = item.preview || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="60"><rect width="80" height="60" fill="#F1F5F9"/></svg>');`);
 ui=ui.replace('var outSize = calculateEstimatedOutputSize(item.inputSizeMB);',"var outSize = item.blob ? formatBytes(item.blob.size) : 'Pending';");
 ui=ui.replaceAll('item.name','escapeHtml(item.name)').replaceAll('item.errorMessage','escapeHtml(item.errorMessage)');
 ui=ui.replaceAll("'Converting ' + item.progress + '%'","'Decoding & encoding…'");

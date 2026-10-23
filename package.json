@@ -10,6 +10,7 @@
     "css": "tailwindcss -c tailwind.config.cjs -i src/styles/input.css -o src/styles/generated.css --minify",
     "preview": "node scripts/run-astro.mjs preview --host 127.0.0.1",
     "test": "playwright test",
+    "test:sitemap-build": "node --test tests/sitemap-build.mjs",
     "test:visual": "node tests/visual.mjs",
     "check": "tsc --noEmit && tsc -p tsconfig.worker.json"
   },

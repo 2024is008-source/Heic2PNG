@@ -26,13 +26,22 @@ async function preflight(file:File) {
  }
  await visit(0,file.size,0);
 }
-self.onmessage = async ({data}:{data:{file:File; settings:Settings}}) => {
+self.onmessage = async ({data}:{data:{file:File; settings:Settings; previewOnly?:boolean}}) => {
  let bitmap:ImageBitmap|undefined, canvas:OffscreenCanvas|undefined;
  try {
   await preflight(data.file);
   bitmap=await heicTo({blob:data.file,type:'bitmap'});
   const {width:originalWidth,height:originalHeight}=bitmap;
   if(originalWidth*originalHeight>60_000_000)throw new Error('Image exceeds the 60 megapixel memory limit.');
+  if(data.previewOnly){
+   const scale=Math.min(1,160/originalWidth,120/originalHeight);
+   canvas=new OffscreenCanvas(Math.max(1,Math.round(originalWidth*scale)),Math.max(1,Math.round(originalHeight*scale)));
+   const ctx=canvas.getContext('2d');
+   if(!ctx)throw new Error('Canvas is unavailable in this browser.');
+   ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+   self.postMessage({thumbnail:await canvas.convertToBlob({type:'image/png'}),originalWidth,originalHeight});
+   return;
+  }
   let width=originalWidth,height=originalHeight;
   const s=data.settings;
   if(s.mode==='scale-50'){width=Math.max(1,Math.round(width/2));height=Math.max(1,Math.round(height/2));}

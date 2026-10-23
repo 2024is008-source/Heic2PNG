@@ -2,14 +2,14 @@
 import {getCollection, render} from 'astro:content';
 import {renderDesign, prepareArticle, articlePath} from '../lib/design.mjs';
 import {canonicalPageUrl} from '../lib/urls.mjs';
+import {pagePaths} from '../lib/page-routes.mjs';
 import {createStructuredData,serializeStructuredData} from '../lib/structured-data.mjs';
 import AdSlot from '../components/AdSlot.astro';
 import '../styles/generated.css';
 import '../styles/approved.css';
 export async function getStaticPaths() {
  const articles=(await getCollection('blog')).filter(e=>!e.data.draft);
- const paths=['','heic-to-jpg','heic-to-avif','blog','about','contact','privacy','terms'];
- return [...paths.map(path=>({params:{path:path||undefined}})),...articles.map(entry=>({params:{path:'blog/'+entry.data.slug},props:{entry}}))];
+ return [...pagePaths.map(path=>({params:{path:path.slice(1)||undefined}})),...articles.map(entry=>({params:{path:'blog/'+entry.data.slug},props:{entry}}))];
 }
 const articles=(await getCollection('blog')).filter(e=>!e.data.draft).sort((a,b)=>b.data.published.valueOf()-a.data.published.valueOf());
 const path=Astro.props.pathOverride||(Astro.params.path?'/'+Astro.params.path:'/');
@@ -50,7 +50,8 @@ if(entry) {
 }
 // Keep every existing ad slot as a reusable component at the same location.
 const parts=before.split(/(<div class="ad-placeholder-block[\s\S]*?<\/div>\s*<\/div>)/g);
-const schema=createStructuredData({path,title,description,entry,noindex:path==='/404'});
+const noindex=path==='/404'||entry?.data.noindex===true;
+const schema=createStructuredData({path,title,description,entry,noindex});
 ---
 <!doctype html>
 <html lang="en" class="scroll-smooth">
@@ -69,7 +70,7 @@ const schema=createStructuredData({path,title,description,entry,noindex:path==='
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
   {entry?.data.image&&<meta property="og:image" content={new URL(entry.data.image,Astro.site).href} />}
-  {path==='/404'&&<meta name="robots" content="noindex,follow" />}
+  {noindex&&<meta name="robots" content="noindex,follow" />}
   <link href="/fonts/fonts.css" rel="stylesheet" />
   {schema&&<script is:inline type="application/ld+json" set:html={serializeStructuredData(schema)} />}
  </head>

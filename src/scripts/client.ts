@@ -23,7 +23,7 @@ var currentFormat = "PNG", jpgQuality = 85, avifQuality = 78, toastTimeout = nul
       var html = '';
       for (var j = 0; j < fileQueue.length; j++) {
         var item = fileQueue[j];
-        var thumbSrc = item.preview || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="60"%3E%3Crect width="80" height="60" fill="%23F1F5F9"/%3E%3C/svg%3E';
+        var thumbSrc = item.preview || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="60"><rect width="80" height="60" fill="#F1F5F9"/></svg>');
         var outName = getOutputFilename(escapeHtml(item.name));
         var outSize = item.blob ? formatBytes(item.blob.size) : 'Pending';
 
@@ -293,7 +293,37 @@ function errorBanner(message) {
  $('converter-error-banner').classList.remove('hidden');
 }
 function dismissErrorBanner(){ $('converter-error-banner').classList.add('hidden'); }
-function release(item){ if(item.preview) URL.revokeObjectURL(item.preview); item.blob=null;item.preview=null; }
+function release(item,discardPreview=true){ if(discardPreview){if(item.preview)URL.revokeObjectURL(item.preview);item.preview=null;}item.blob=null; }
+let previewTask=null;
+function cancelPreview(){previewTask?.cancel();}
+function prepareNextPreview(){
+ if(busy||previewTask)return;
+ const item=fileQueue.find(item=>!item.preview&&!item.previewAttempted);
+ if(!item)return;
+ const epoch=generation;
+ const worker=new Worker(new URL('./converter.worker.ts',import.meta.url),{type:'module'});
+ const task={cancel:()=>finish(null,true)};
+ previewTask=task;
+ const timer=setTimeout(()=>finish(null),120000);
+ function finish(data,cancelled=false){
+  clearTimeout(timer);worker.terminate();
+  if(previewTask===task)previewTask=null;
+  if(!cancelled&&epoch===generation&&fileQueue.includes(item)){
+   item.previewAttempted=true;
+   if(data?.thumbnail){
+    if(item.preview)URL.revokeObjectURL(item.preview);
+    item.preview=URL.createObjectURL(data.thumbnail);
+    item.originalWidth=data.originalWidth;item.originalHeight=data.originalHeight;
+    if(!item.blob)item.dimensions=data.originalWidth+' × '+data.originalHeight+' px';
+   }
+   refresh();
+  }
+  if(!cancelled)prepareNextPreview();
+ }
+ worker.onmessage=({data})=>finish(data);
+ worker.onerror=()=>finish(null);
+ worker.postMessage({file:item.file,previewOnly:true});
+}
 function refresh(){
  if(!$('file-rows-container'))return;
  renderFileQueue();
@@ -329,6 +359,7 @@ async function ingestUserFiles(files){
   fileQueue.push({id:crypto.randomUUID(),file,name:file.name,inputSizeMB:file.size/1024/1024,dimensions:'Dimensions available after decoding',colorSpace:'Not inspected',status:'queued',errorMessage:'',progress:0});
  }
  refresh();
+ prepareNextPreview();
 }
 function handleRealFileSelect(e){ const files=[...e.target.files];e.target.value='';void ingestUserFiles(files); }
 function handleDragOver(e){e.preventDefault();$('upload-dropzone').classList.add('ring-4','ring-indigo-500/15');}
@@ -363,29 +394,30 @@ function runWorker(file, options){
 async function convertItems(items){
  if(busy)return;
  if(!items.length)return showToast('Choose HEIC files first.');
- const epoch=generation, options=settings();busy=true;dismissErrorBanner();refresh();
+ const epoch=generation, options=settings();busy=true;cancelPreview();dismissErrorBanner();refresh();
  for(const item of items){
   if(epoch!==generation)break;
   if(!fileQueue.includes(item))continue;
-  release(item);item.status='converting';refresh();
+  release(item,false);item.status='converting';refresh();
   try{
    const result=await runWorker(item.file,options);
    if(epoch!==generation||!fileQueue.includes(item))continue;
    if(fileQueue.reduce((n,x)=>n+(x.blob?.size||0),0)+result.blob.size>MAX_OUTPUT)throw new Error('Batch output reached 512 MB. Download and clear files before continuing.');
+   if(item.preview)URL.revokeObjectURL(item.preview);
    Object.assign(item,result,{preview:URL.createObjectURL(result.thumbnail),status:'completed',colorSpace:'8-bit RGB',dimensions:result.width+' × '+result.height+' px',progress:100});
   }catch(error){if(epoch!==generation)break;if(!fileQueue.includes(item))continue;item.status='error-unsupported';item.errorMessage=error.message;errorBanner(error.message+' Retry with Convert to '+currentFormat+' or remove the file.');}
   refresh();
  }
- busy=false;refresh();
+ busy=false;refresh();prepareNextPreview();
 }
 function startBatchConversion(){return convertItems(fileQueue.filter(x=>x.status!=='completed'));}
 function convertSingleFile(id){return convertItems(fileQueue.filter(x=>x.id===id));}
 function removeFileById(id){
  const item=fileQueue.find(x=>x.id===id);if(!item)return;
  if(item.status==='converting')cancelActive?.();
- release(item);fileQueue=fileQueue.filter(x=>x!==item);refresh();
+ cancelPreview();release(item);fileQueue=fileQueue.filter(x=>x!==item);refresh();prepareNextPreview();
 }
-function clearAllFiles(){generation++;cancelActive?.();fileQueue.forEach(release);fileQueue=[];refresh();dismissErrorBanner();}
+function clearAllFiles(){generation++;cancelActive?.();cancelPreview();fileQueue.forEach(item=>release(item));fileQueue=[];refresh();dismissErrorBanner();}
 function save(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 function downloadConvertedFile(id){const item=fileQueue.find(x=>x.id===id);if(item?.blob)save(item.blob,getOutputFilename(item.name));}
 function downloadFirstCompleted(){const item=fileQueue.find(x=>x.blob);if(item)downloadConvertedFile(item.id);else showToast('Convert a file before downloading.');}
@@ -401,7 +433,7 @@ async function downloadAllAsZip(){
  }catch{errorBanner('ZIP creation failed. Download images individually or use a smaller batch.');}
  finally{zipping=false;}
 }
-function invalidate(){if(busy)return;for(const item of fileQueue){release(item);item.status='queued';item.errorMessage='';}refresh();}
+function invalidate(){if(busy)return;for(const item of fileQueue){release(item,false);item.status='queued';item.errorMessage='';}refresh();}
 // Blog filtering works against statically rendered, accessible article links.
 let blogCategory=new URLSearchParams(location.search).get('category')||'ALL', blogQuery=new URLSearchParams(location.search).get('q')||'',blogPage=1;
 function renderBlogCards(){
@@ -468,4 +500,4 @@ document.addEventListener('click',e=>{
  const faq=e.target.closest('[data-onclick^="toggleFaq"]');if(faq){const n=faq.getAttribute('data-onclick').match(/\d+/)[0];faq.setAttribute('aria-expanded',String(!$('faq-body-'+n).classList.contains('hidden')));}
  syncMenuDisclosureState();
 });
-window.addEventListener('pagehide',()=>{generation++;cancelActive?.();fileQueue.forEach(release);});
+window.addEventListener('pagehide',()=>{generation++;cancelActive?.();cancelPreview();fileQueue.forEach(item=>release(item));});
