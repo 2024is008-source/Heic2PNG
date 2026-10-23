@@ -40,13 +40,22 @@ export function blogCard(entry,index) {
  const item=entry.data;
  return `<article data-blog-card data-category="${esc(item.category)}" data-search="${esc(item.title+' '+item.description+' '+item.category)}" class="bg-white rounded-2xl border border-[#E2E8F0] shadow-soft hover:shadow-card hover:border-indigo-300 transition-soft overflow-hidden flex flex-col justify-between cursor-pointer group"><a href="/blog/${esc(item.slug)}" class="flex flex-col justify-between h-full"><div><div class="h-36 bg-gradient-to-br ${esc(item.accent)} p-5 flex flex-col justify-between text-white relative overflow-hidden"><div class="flex items-center justify-between text-[11px] font-mono opacity-90"><span>GUIDE #${index+1}</span><span class="px-2 py-0.5 rounded bg-white/15 font-bold">${esc(item.badgeText)}</span></div><div class="font-extrabold text-sm tracking-tight leading-snug">${esc(item.title)}</div></div><div class="p-5"><div class="flex items-center justify-between text-xs mb-2.5"><span class="px-2.5 py-0.5 rounded-full bg-indigo-50 text-[#4F46E5] font-bold">${esc(item.category)}</span><span class="text-[#64748B]">${esc(item.readTime)}</span></div><h3 class="text-base font-bold text-[#0F172A] group-hover:text-[#4F46E5] transition-soft leading-snug mb-2">${esc(item.title)}</h3><p class="text-xs sm:text-sm text-[#64748B] leading-relaxed">${esc(item.description)}</p></div></div><div class="px-5 py-3.5 bg-[#F8FAFC] border-t border-[#E2E8F0] flex items-center justify-between text-xs"><span class="text-[#64748B]">${new Date(item.published).toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric',timeZone:'UTC'})}</span><span class="font-bold text-[#4F46E5] group-hover:translate-x-0.5 transition-transform">Read Guide →</span></div></a></article>`;
 }
-export function renderDesign(path, entries=[]) {
+export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail.com'}={}) {
  const {document}=parseHTML(original);
  const active=views[path]||['view-blog-article'];
- // Render the supplied PNG unchanged. The SVG viewport excludes its transparent
- // outer padding while keeping the existing header/footer branding row sizes.
- const logo=(width,height)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="117 197 1953 353" preserveAspectRatio="xMinYMid meet" role="img" aria-label="HEIC2PNG.site" class="shrink-0"><image href="/brand/heic2png-logo.png" width="2172" height="724" /></svg>`;
+ // Cropped, compressed theme variants retain the existing branding row sizes.
+ const logo=(width,height)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 1953 353" preserveAspectRatio="xMinYMid meet" role="img" aria-label="HEIC2PNG.site" class="site-logo shrink-0"><image class="logo-light" href="/brand/heic2png-logo-light.webp" width="1953" height="353" /><image class="logo-dark" href="/brand/heic2png-logo-dark.webp" width="1953" height="353" /></svg>`;
  document.querySelector('header a[aria-label="HEIC2PNG Home"]').innerHTML=logo(176.65625,36);
+ // Replace the trust badge with an accessible, compact theme control.
+ const headerActions=document.getElementById('mobile-menu-btn').parentElement;
+ headerActions.querySelector('.desktop-nav-only').remove();
+ headerActions.classList.add('shrink-0');
+ headerActions.insertAdjacentHTML('afterbegin',`<button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode"><svg class="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" /></svg><svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg></button>`);
+ const headerNav=document.querySelector('header nav');
+ headerNav.classList.replace('md:flex','lg:flex');
+ headerNav.classList.add('ml-auto');
+ document.getElementById('mobile-menu-btn').classList.replace('md:hidden','lg:hidden');
+ headerActions.parentElement.classList.replace('gap-4','gap-3');
  document.querySelector('footer .responsive-grid-4 > div > div').innerHTML=logo(145,32);
  // Remove only developer controls and sample loaders.
  document.getElementById('design-inspector-bar').remove();
@@ -80,6 +89,15 @@ export function renderDesign(path, entries=[]) {
    document.getElementById('success-banner-subtitle').textContent='Processed locally in your browser';
    document.getElementById('btn-zip-banner-text').textContent='Download All as ZIP';
    improveConverterContent(document,format);
+   const tabs=document.querySelector('[role="tablist"]');
+   tabs.classList.add('converter-format-tabs');
+   tabs.parentElement.classList.add('converter-card-header');
+   tabs.nextElementSibling.classList.add('converter-format-indicators');
+   tabs.parentElement.parentElement.classList.add('converter-card');
+   dz.parentElement.classList.add('converter-card-body');
+   const fileToolbar=document.getElementById('file-list-section').firstElementChild;
+   fileToolbar.classList.add('file-list-toolbar');fileToolbar.firstElementChild.classList.add('file-list-summary');
+   document.getElementById('settings-summary-format').parentElement.parentElement.classList.add('converter-settings-summary');
  }
  for(const el of document.querySelectorAll('main > section, main > div')) {
    if(active.includes(el.id)) el.classList.remove('hidden'); else el.remove();
@@ -115,8 +133,31 @@ export function renderDesign(path, entries=[]) {
    document.getElementById('contact-form').removeAttribute('novalidate');
    for(const id of ['contact-name','contact-email','contact-message']) document.getElementById(id).setAttribute('required','');
    document.getElementById('contact-success-box').remove();
+   if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)){
+    const note=[...document.querySelectorAll('#view-contact strong')].find(p=>p.textContent==='Privacy Note:')?.parentElement;
+    if(note){const link=document.createElement('a');link.href='mailto:'+contactEmail;link.textContent=contactEmail;link.className='underline';note.append(' The form opens your email app. You can also email ',link,'.');}
+   }
  }
+ if(path==='/about')for(const el of document.querySelectorAll('#view-about h2, #view-about h3, #view-about p')){
+  if(el.textContent==='Tested Format Guides')el.textContent='Practical Format Guides';
+  if(el.textContent.includes('OS-tested tutorials'))el.textContent='Alongside our free conversion tools, our guides explain HEIC formats and common Windows, macOS and iPhone workflows. Available features depend on your device, browser and application version.';
+ }
+ if(path==='/terms')for(const el of document.querySelectorAll('#view-terms span'))if(el.textContent.trim()==='Document Template')el.textContent='Legal';
+ if(path==='/privacy')for(const el of document.querySelectorAll('#view-privacy p'))if(el.textContent.includes('We use minimal local preferences'))el.textContent=el.textContent.replace('We use minimal local preferences to remember your preferred conversion settings during your session.','Conversion settings are held in page memory and reset when you leave or reload the page.');
  wireNavigation(document);
+ for(const span of document.querySelectorAll('#content-home-png span')){
+  if(span.textContent.trim()==='Download ZIP'||span.classList.contains('text-slate-300'))span.parentElement.classList.add('mobile-wrap-illustration');
+ }
+ for(const table of document.querySelectorAll('main table')){
+  const wrapper=table.parentElement;
+  if(wrapper.classList.contains('overflow-x-auto')){
+   wrapper.classList.add('mobile-table-scroll');wrapper.setAttribute('tabindex','0');wrapper.setAttribute('role','region');
+   wrapper.setAttribute('aria-label','Comparison table; scroll horizontally to see all columns');
+  }
+ }
+ for(const [id,role]of [['converter-error-banner','alert'],['contact-error-box','alert'],['converter-success-banner','status'],['app-toast','status']]){
+  const el=document.getElementById(id);if(el){el.setAttribute('role',role);el.setAttribute('aria-atomic','true');}
+ }
  for(const [buttonId,panelId] of [['tools-dropdown-btn','tools-dropdown-menu'],['mobile-menu-btn','mobile-nav-drawer']]) {
    const button=document.getElementById(buttonId),panel=document.getElementById(panelId);
    button.setAttribute('aria-controls',panelId);

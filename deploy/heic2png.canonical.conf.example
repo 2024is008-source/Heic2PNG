@@ -41,6 +41,11 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'" always;
 
+    # Reject hidden files before any index-alias regex can inspect them.
+    location ~ /\. { deny all; }
+    location = /sitemap.xml { types { application/xml xml; } try_files $uri =404; }
+    location = /site.webmanifest { types { application/manifest+json webmanifest; } try_files $uri =404; }
+
     location = /index.html { return 301 https://heic2png.site/$is_args$args; }
 
     # Only existing directory index files redirect; missing aliases stay 404.
@@ -66,8 +71,11 @@ server {
     error_page 404 /404.html;
     location = /404.html { internal; }
     location ^~ /_astro/ { try_files $uri =404; expires 1y; }
-    location ^~ /fonts/ { try_files $uri =404; expires 30d; }
-    location ~ /\. { deny all; }
+    location ^~ /fonts/ {
+        types { text/css css; font/ttf ttf; font/woff2 woff2; text/plain txt; }
+        try_files $uri =404;
+        expires 30d;
+    }
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/heic2png.site/acme;
         try_files $uri =404;

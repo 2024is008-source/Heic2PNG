@@ -4,13 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/prepare-content.mjs && node scripts/prepare-client.mjs && npm run css",
+    "predev": "node scripts/prepare-client.mjs && npm run css",
     "dev": "node scripts/run-astro.mjs dev --host 127.0.0.1",
-    "build": "node scripts/prepare-content.mjs && node scripts/prepare-client.mjs && npm run css && node scripts/run-astro.mjs build",
-    "css": "tailwindcss -c tailwind.config.cjs -i src/styles/input.css -o src/styles/generated.css --minify",
+    "build": "node scripts/prepare-client.mjs && npm run css && node scripts/run-astro.mjs build",
+    "prepare:content": "node scripts/prepare-content.mjs",
+    "css": "tailwindcss -c tailwind.config.cjs -i src/styles/input.css -o src/generated/styles.css --minify",
     "preview": "node scripts/run-astro.mjs preview --host 127.0.0.1",
     "test": "playwright test",
     "test:sitemap-build": "node --test tests/sitemap-build.mjs",
+    "test:repro": "node --test tests/build-reproducibility.mjs",
+    "test:clean-build": "node tests/clean-build.mjs",
+    "test:redirects": "node tests/nginx-redirects.mjs",
+    "validate:release": "node scripts/validate-release.mjs",
+    "assets:brand": "node scripts/generate-brand-assets.mjs",
     "test:visual": "node tests/visual.mjs",
     "check": "tsc --noEmit && tsc -p tsconfig.worker.json"
   },
@@ -26,7 +32,8 @@
     "@playwright/test": "1.64.1",
     "pixelmatch": "8.0.0",
     "pngjs": "7.0.0",
-    "tailwindcss": "3.4.17",
+    "sharp": "0.35.5",
+    "tailwindcss": "3.4.19",
     "typescript": "7.0.2"
   }
 }

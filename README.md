@@ -34,12 +34,12 @@ Open the localhost URL printed by Astro. `npm run build` produces `dist/`; `npm 
 | Original long-named `.html` file | Unchanged approved UI source; includes the retained AVIF and design-studio views |
 | `src/lib/design.mjs` | Prerenders selected approved views, connects real navigation, removes developer controls and applies documented technical corrections |
 | `src/pages/[...path].astro` | Static page routes, metadata, structured data and content rendering |
-| `src/styles/approved.css`, `tailwind.config.cjs` | Exact extracted custom CSS and Tailwind design tokens |
+| `src/styles/approved.css`, `tailwind.config.cjs` | Approved design tokens and narrowly scoped article overflow corrections |
 | `src/scripts/converter.worker.ts` | HEIF size preflight, decoding, resizing and PNG/JPEG encoding |
 | `src/scripts/avif-encoder.ts` | Lazy browser AVIF encoder, actual quality/chroma/lossless settings and container validation |
 | `src/scripts/runtime.txt` | Functional browser runtime source fragment |
-| `scripts/prepare-client.mjs` | Combines preserved UI renderers and runtime into `src/scripts/client.ts` during builds |
-| `src/content/blog/` | One complete supplied article and nine unpublished drafts whose bodies were not supplied |
+| `scripts/prepare-client.mjs` | Combines preserved UI renderers and runtime into ignored `src/generated/client.ts` during builds |
+| `src/content/blog/` | Ten published guides and three intentionally unpublished drafts |
 | `src/components/AdSlot.astro` | Existing reserved ad markup with disabled integration configuration |
 | `tests/` | Real HEIC integration tests, isolated static test server and original-versus-production visual comparisons |
 | `deploy/` | Separate Nginx site configuration, safe DNS/TLS deployment and rollback instructions |
@@ -52,17 +52,17 @@ The original HTML, custom CSS, palette, typography classes, shadows, spacing, la
 
 The permitted visible deviations are removal of development inspectors/state presets/sample loaders; an empty real-file queue; actual file data, thumbnails, errors and completion states; honest disabled metadata/color controls; real published-article counts; disabled links to unpublished guides; and corrections to unsupported technical/testing claims. The footer's development-spec link is omitted. No new ad positions or cosmetic layout rules were added.
 
-Visual comparison runs the **original Tailwind CDN runtime independently**, then compares against the compiled production CSS. Both sides use the exact approved font files. Baselines remove development controls and simulated queued files, and restrict blog cards to the one article with a body. Original, production and difference screenshots are written at 1440, 1024, 768, 390, 375 and 320 pixels for PNG, JPG, AVIF, blog and article pages. Full-suite results are recorded in `test-results/visual/results.json`; the focused AVIF update is in `test-results/visual/heic-to-avif-results.json`. These comparisons are not a claim that all full-page pixels match: truthful content changes and actual inventory counts produce expected differences. The original article itself overflows a 320px viewport to 360px; the production page retains this inherited behavior rather than silently changing the approved breakpoint/layout.
+The historical visual script compares the original prototype against the current site; its old article inventory and copy are not a clean pre-change baseline. The current production-optimization pass captured its own before/after screenshots at 320, 375, 390, 768, 1024 and 1440px: all 18 converter dropzone crops and six full-page homepage screenshots match, as do the two affected articles at desktop widths. The Windows illustration now wraps at narrow widths and both comparison tables scroll rather than clip. See `ISSUE_FIX_REPORT.md` for measured changes and limitations.
 
 ## Technical/content limitations and corrections
 
 - **AVIF precision:** output is 8-bit RGB. Lossless means no additional loss relative to the decoded/resized 8-bit pixels; it cannot restore details already discarded by HEIC or preserve source HDR/ICC metadata. Encoding can be slower than PNG/JPG, particularly on mobile; the existing clear/remove controls cancel work.
 - **Color and metadata:** output is 8-bit RGB. Source ICC/HDR fidelity, auxiliary alpha/depth, animation/Live Photos and multi-image sequence preservation are not promised. Camera/GPS EXIF is always removed; retaining metadata is unavailable. The controls reflect these limits. Keep originals for archival use.
-- **Article inventory:** only the Windows guide has a supplied complete body. Nine original sample cards remain drafts and have no public URLs. No unrelated article body is substituted under their titles. Their disabled related-guide previews are preserved in the supplied article design.
+- **Article inventory:** ten guides are published with distinct content and three drafts have no public routes or sitemap entries.
 - **Ads:** all ad areas are temporarily hidden by default, including their labels and reserved space on converter and article pages. To restore the existing placements, set `PUBLIC_SHOW_AD_AREAS=true` in `.env`, then run `npm run build` and redeploy (restart the development server when using dev mode). Set it back to `false` to hide them again. This switch restores the areas; live AdSense/CMP integration still needs separate setup. Configuring a publisher ID does not enable third-party scripts. No publisher or slot identifier was invented.
 - **Device support:** browser integration tests use desktop Chrome. A real iPhone/Safari/Android/Firefox device matrix has not been executed. OffscreenCanvas/Workers/modern browser APIs are required; failures produce honest per-file errors.
 - **Nginx/TLS:** deployment instructions are prepared, but no VPS, DNS or certificate changes have been made. Nginx validation must be run on the VPS.
-- **Build dependencies:** the network-backed npm audit found seven advisories in Tailwind 3's development/build dependency chain (including braces, with no patched 3.x release available at inspection). `npm audit --omit=dev` reported zero production-dependency findings. Tailwind 4 was not substituted because it would change the approved CSS baseline. No build dependency is served from `dist/`.
+- **Build dependencies:** the 23 October 2026 npm audit reports three moderate findings in the selector-parser/Tailwind build chain. Tailwind was compatibly patched to 3.4.19; no patched selector-parser v6 exists. No forced Tailwind v4/parser-major override was applied. The advisory concerns untrusted CSS parsing, not the browser's HEIC input. See `ISSUE_FIX_REPORT.md`; audit counts are not a security certification.
 
 Corrections to public copy are limited to unsupported P3/HDR/alpha/EXIF promises, the claim that the selected HEIC decoder is a WebAssembly pipeline (it is currently a JavaScript libheif build), and unsubstantiated device-testing claims in the article. AVIF encoding itself uses WebAssembly. Educational sections and the original article body otherwise remain supplied content. Detailed testing evidence is in `VERIFICATION.md`.
 
@@ -81,5 +81,13 @@ Real fixtures are described in `tests/fixtures/README.md`. The checks validate P
 ## Deploy
 
 Build with `npm run build` and deploy only `dist/` to the new release directory. Follow `deploy/README.md` for the separate Nginx block, DNS, dedicated TLS certificate, validation, reload and rollback procedure. Do not overwrite another site's root, server block or certificates. Deployment requires a separate explicit instruction.
+
+Normal builds never run the editorial migration script. `src/generated/` is ignored;
+do not edit its client/CSS outputs. `npm run prepare:content` is an explicit
+editorial operation only. `npm run test:repro` checks two builds for source/Git
+stability and identical artifacts. See `DEPLOYMENT_GUIDE.md` for isolated clean
+installs, atomic release switching and rollback. Brand derivatives can be rebuilt
+with `npm run assets:brand`; the committed WOFF2 files are lossless full-font
+copies generated by `scripts/convert-fonts.py`, not new font families or subsets.
 
 The decoder's LGPL notice/source links and font licenses are retained under `public/legal/` and `public/fonts/`. Review third-party license obligations when redistributing a modified decoder.

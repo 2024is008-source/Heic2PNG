@@ -11,6 +11,6 @@ http.createServer((req,res)=>{
  let status=200;if(!fs.existsSync(target)){status=404;target=path.join(root,'404.html');}
  const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'};
  if(!special[pathname])headers['Content-Security-Policy']="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
- const ext=path.extname(target);res.writeHead(status,{...headers,'Content-Type':({'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.xml':'application/xml','.txt':'text/plain','.wasm':'application/wasm','.ttf':'font/ttf'})[ext]||'application/octet-stream'});
+ const ext=path.extname(target);res.writeHead(status,{...headers,'Content-Type':({'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.xml':'application/xml','.txt':'text/plain','.wasm':'application/wasm','.ttf':'font/ttf','.woff2':'font/woff2','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon','.webmanifest':'application/manifest+json'})[ext]||'application/octet-stream'});
  fs.createReadStream(target).pipe(res);
 }).listen(4876,'127.0.0.1',()=>console.log('Static verification server on http://127.0.0.1:4876'));

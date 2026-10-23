@@ -5,8 +5,9 @@ import {canonicalPageUrl} from '../lib/urls.mjs';
 import {pagePaths} from '../lib/page-routes.mjs';
 import {createStructuredData,serializeStructuredData} from '../lib/structured-data.mjs';
 import AdSlot from '../components/AdSlot.astro';
-import '../styles/generated.css';
+import '../generated/styles.css';
 import '../styles/approved.css';
+import '../styles/theme.css';
 export async function getStaticPaths() {
  const articles=(await getCollection('blog')).filter(e=>!e.data.draft);
  return [...pagePaths.map(path=>({params:{path:path.slice(1)||undefined}})),...articles.map(entry=>({params:{path:'blog/'+entry.data.slug},props:{entry}}))];
@@ -40,7 +41,7 @@ const title=(entry?.data.title||titles[path])+' | HEIC2PNG';
 const description=descriptions[path]||entry?.data.description;
 const canonical=canonicalPageUrl(path);
 const showAdAreas=import.meta.env.PUBLIC_SHOW_AD_AREAS==='true';
-let {body,bodyClass}=renderDesign(path,articles);
+let {body,bodyClass}=renderDesign(path,articles,{contactEmail:import.meta.env.PUBLIC_CONTACT_EMAIL||'backbencherz@gmail.com'});
 const {Content}=entry?await render(entry):{Content:undefined};
 const marker='<section id="view-blog-article"';
 let before=body,after='';
@@ -58,6 +59,7 @@ const schema=createStructuredData({path,title,description,entry,noindex});
  <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script is:inline src="/theme.js"></script>
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
@@ -66,10 +68,22 @@ const schema=createStructuredData({path,title,description,entry,noindex});
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonical} />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
-  {entry?.data.image&&<meta property="og:image" content={new URL(entry.data.image,Astro.site).href} />}
+  <meta property="og:image" content={new URL(entry?.data.image||'/brand/social-preview.webp',Astro.site).href} />
+  {!entry?.data.image&&<meta property="og:image:width" content="1200" />}
+  {!entry?.data.image&&<meta property="og:image:height" content="630" />}
+  <meta property="og:image:alt" content={entry?.data.image?entry.data.title:'HEIC2PNG — HEIC image conversion tools'} />
+  <meta name="twitter:image" content={new URL(entry?.data.image||'/brand/social-preview.webp',Astro.site).href} />
+  <meta name="twitter:image:alt" content={entry?.data.image?entry.data.title:'HEIC2PNG — HEIC image conversion tools'} />
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <meta name="theme-color" content="#4F46E5" />
   {noindex&&<meta name="robots" content="noindex,follow" />}
   <link href="/fonts/fonts.css" rel="stylesheet" />
   {schema&&<script is:inline type="application/ld+json" set:html={serializeStructuredData(schema)} />}
@@ -78,6 +92,6 @@ const schema=createStructuredData({path,title,description,entry,noindex});
   {parts.map((part,i)=>i%2?<AdSlot html={part}/>:<Fragment set:html={part}/>)}
   {Content&&<Content />}
   <Fragment set:html={after} />
-  <script src="../scripts/client.ts"></script>
+  <script src="../generated/client.ts"></script>
  </body>
 </html>

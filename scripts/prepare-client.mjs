@@ -22,4 +22,6 @@ ui=ui.replace("wEl.value = 4032;\n        hEl.value = 3024;", "wEl.value = fileQ
 ui=ui.replace("sumRes.textContent = 'Resized: 2016 × 1512 px';","sumRes.textContent = 'Scale each image to 50%';");
 ui=ui.replace("sumRes.textContent = 'Resized: 1920 × 1440 px';","sumRes.textContent = 'Fit each image to maximum width 1920 px';");
 ui=ui.replace("wEl.value = 2016;\n        hEl.value = 1512;","wEl.value = ''; hEl.value = '';" ).replace("wEl.value = 1920;\n        hEl.value = 1440;","wEl.value = 1920; hEl.value = '';" );
-fs.writeFileSync('src/scripts/client.ts','// @ts-nocheck\n// Original approved UI renderers and toggles, with real-data substitutions.\n'+ui+'\n'+fs.readFileSync('src/scripts/runtime.txt','utf8'));
+fs.mkdirSync('src/generated',{recursive:true});
+const runtime=fs.readFileSync('src/scripts/runtime.txt','utf8').replaceAll("new URL('./converter.worker.ts'","new URL('../scripts/converter.worker.ts'");
+fs.writeFileSync('src/generated/client.ts','// @ts-nocheck\n// Generated from the approved UI helpers and runtime; do not edit.\n'+ui+'\n'+runtime);
