@@ -1,0 +1,27 @@
+HEIC2PNG uses the following third-party browser software:
+
+heic-to 1.6.6 — LGPL-3.0-or-later
+Copyright and license: see heic-to-LGPL.txt in this directory.
+Corresponding upstream source and build instructions:
+https://github.com/hoppergee/heic-to
+https://www.npmjs.com/package/heic-to/v/1.6.6
+The distributed decoder is unmodified; the application imports its CSP build.
+libheif (included by heic-to) and libde265 licensing notices are preserved
+in the decoder distribution and the upstream sources:
+https://github.com/strukturag/libheif
+https://github.com/strukturag/libde265
+
+JSZip 3.10.2 — MIT / GPL-3.0 dual license (used under MIT)
+https://github.com/Stuk/jszip/tree/v3.10.2
+
+@jsquash/avif 2.1.1 — Apache-2.0
+See jSquash-AVIF-LICENSE.txt. Uses the unmodified single-thread libavif
+WebAssembly encoder distributed in the package. Source and codec build notes:
+https://github.com/jamsinclair/jSquash/tree/main/packages/avif
+https://github.com/AOMediaCodec/libavif
+
+Inter and JetBrains Mono — SIL Open Font License 1.1
+See /fonts/Inter-OFL.txt and /fonts/JetBrains-Mono-OFL.txt.
+
+Application conversion runs locally. No user image data is transmitted
+to these projects, package registries, or the hosting server.

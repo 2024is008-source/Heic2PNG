@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "slug": "how-to-convert-heic-to-png-on-windows-11",
+    "category": "Tutorials",
+    "title": "How to Convert HEIC to PNG on Windows 11",
+    "summary": "Compare four tested ways to convert iPhone HEIC photos to lossless PNG on Windows 11—including browser batch conversion, Windows Photos Save As, and codec setup.",
+    "date": "Oct 14, 2026",
+    "readTime": "7 min read",
+    "accent": "from-indigo-600 to-blue-600",
+    "badgeText": "WIN 11 → PNG"
+  },
+  {
+    "id": 2,
+    "slug": "how-to-convert-heic-to-jpg-on-iphone",
+    "category": "iPhone Photos",
+    "title": "How to Convert HEIC to JPG on iPhone",
+    "summary": "Learn how to export JPG copies directly inside the iOS Files app, create a 1-tap Apple Shortcuts quick action, or switch your iPhone Camera to Most Compatible mode.",
+    "date": "Oct 11, 2026",
+    "readTime": "6 min read",
+    "accent": "from-blue-600 to-cyan-600",
+    "badgeText": "iOS → JPG"
+  },
+  {
+    "id": 3,
+    "slug": "what-is-a-heic-file-beginners-guide",
+    "category": "HEIC Guides",
+    "title": "What Is a HEIC File? A Complete Beginner's Guide",
+    "summary": "Understand how Apple's High Efficiency Image Coding container works, why HEVC compression cuts photo sizes in half, and how it stores Live Photos and depth maps.",
+    "date": "Oct 08, 2026",
+    "readTime": "8 min read",
+    "accent": "from-violet-600 to-indigo-600",
+    "badgeText": "HEIC 101"
+  },
+  {
+    "id": 4,
+    "slug": "heic-vs-png-quality-file-size-compatibility",
+    "category": "Image Formats",
+    "title": "HEIC vs PNG: Quality, File Size and Compatibility",
+    "summary": "A technical breakdown of perceptual HEVC compression versus lossless DEFLATE PNG encoding—covering alpha transparency, bit depth, and why PNG files are larger.",
+    "date": "Oct 05, 2026",
+    "readTime": "6 min read",
+    "accent": "from-indigo-700 to-purple-600",
+    "badgeText": "HEIC vs PNG"
+  },
+  {
+    "id": 5,
+    "slug": "why-does-my-iphone-save-photos-as-heic",
+    "category": "iPhone Photos",
+    "title": "Why Does My iPhone Save Photos as HEIC?",
+    "summary": "Explore why Apple replaced JPEG with HEIC as the default camera format in iOS 11, how 10-bit Display P3 capture works, and when you should keep or change the setting.",
+    "date": "Oct 02, 2026",
+    "readTime": "5 min read",
+    "accent": "from-blue-700 to-indigo-600",
+    "badgeText": "iOS CAMERA"
+  },
+  {
+    "id": 6,
+    "slug": "how-to-open-heic-files-on-windows-and-mac",
+    "category": "HEIC Guides",
+    "title": "How to Open HEIC Files on Windows and Mac",
+    "summary": "Practical instructions for viewing HEIC files in Windows 10/11 File Explorer, macOS Preview, and cross-platform browsers without encountering missing codec errors.",
+    "date": "Sep 28, 2026",
+    "readTime": "6 min read",
+    "accent": "from-emerald-600 to-teal-600",
+    "badgeText": "WIN & MAC"
+  },
+  {
+    "id": 7,
+    "slug": "heic-to-jpg-vs-png-which-format-should-you-choose",
+    "category": "Image Formats",
+    "title": "HEIC to JPG vs PNG: Which Format Should You Choose?",
+    "summary": "Find out when lossless PNG is essential for UI graphics, text screenshots, and editing—and when 85% quality JPG is the smarter pick for portraits and email sharing.",
+    "date": "Sep 24, 2026",
+    "readTime": "7 min read",
+    "accent": "from-indigo-600 to-violet-600",
+    "badgeText": "JPG vs PNG"
+  },
+  {
+    "id": 8,
+    "slug": "how-to-fix-heic-files-that-wont-open",
+    "category": "Troubleshooting",
+    "title": "How to Fix HEIC Files That Won't Open",
+    "summary": "Diagnose and solve common HEIC errors: incomplete 0-byte iCloud stubs, misnamed JPEG extensions, Apple ProRAW sequences, and corrupted USB transfer headers.",
+    "date": "Sep 19, 2026",
+    "readTime": "5 min read",
+    "accent": "from-amber-600 to-orange-600",
+    "badgeText": "FIX ERRORS"
+  },
+  {
+    "id": 9,
+    "slug": "heic-vs-avif-whats-the-difference",
+    "category": "Image Formats",
+    "title": "HEIC vs AVIF: What's the Difference?",
+    "summary": "Both formats use the ISO Base Media container, but AVIF uses royalty-free AV1 instead of HEVC. Compare browser support, encoding speed, and compression efficiency.",
+    "date": "Sep 14, 2026",
+    "readTime": "6 min read",
+    "accent": "from-violet-600 to-fuchsia-600",
+    "badgeText": "HEIC vs AVIF"
+  },
+  {
+    "id": 10,
+    "slug": "how-to-convert-multiple-heic-photos-at-once",
+    "category": "Tutorials",
+    "title": "How to Convert Multiple HEIC Photos at Once",
+    "summary": "Step-by-step guide to batch converting 50+ iPhone HEIC photos simultaneously in your browser and downloading organized ZIP archives with consistent sRGB colors.",
+    "date": "Sep 10, 2026",
+    "readTime": "5 min read",
+    "accent": "from-blue-600 to-indigo-700",
+    "badgeText": "BATCH ZIP"
+  }
+]

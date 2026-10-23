@@ -1,0 +1,10 @@
+---
+// Preserve the original reserved containers. No advertising code runs by default.
+const { html } = Astro.props;
+const publisher=import.meta.env.PUBLIC_ADSENSE_PUBLISHER_ID||'';
+const verified=/^ca-pub-\d{16}$/.test(publisher)?publisher:'';
+// Keep third-party JavaScript out of the image-processing document.
+// Configuration is exposed for a future isolated, CMP-approved integration only.
+const prepared=html.replace('<div ',`<div data-ad-enabled="false" data-consent-required="true" data-ad-publisher="${verified}" `);
+---
+<Fragment set:html={prepared} />

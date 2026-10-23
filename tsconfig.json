@@ -1,0 +1,6 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {"lib":["ES2022","DOM","DOM.Iterable"],"types":["vite/client"],"skipLibCheck":true},
+  "include": [".astro/types.d.ts", "src/**/*.ts"],
+  "exclude": ["src/scripts/converter.worker.ts"]
+}
