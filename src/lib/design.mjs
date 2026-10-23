@@ -2,6 +2,7 @@ import vm from 'node:vm';
 import { parseHTML } from 'linkedom';
 import original from '../../heic_to_png_converter_free_private_online_iphone_photo_converter_heic2png_site.html?raw';
 import helpers from '../design/helpers.js?raw';
+import {improveConverterContent} from './converter-content.mjs';
 export const articlePath = '/blog/how-to-convert-heic-to-png-on-windows-11';
 export const routes = {home:'/', 'heic-to-png':'/', 'heic-to-jpg':'/heic-to-jpg','heic-to-avif':'/heic-to-avif',blog:'/blog',article:articlePath,about:'/about',contact:'/contact',privacy:'/privacy',terms:'/terms','404':'/404'};
 const views = {'/':['view-converter-shell','content-home-png'],'/heic-to-jpg':['view-converter-shell','content-heic-to-jpg'],'/heic-to-avif':['view-converter-shell','content-heic-to-avif'],'/blog':['view-blog-index'],'/about':['view-about'],'/contact':['view-contact'],'/privacy':['view-privacy'],'/terms':['view-terms'],'/404':['view-404'],[articlePath]:['view-blog-article']};
@@ -62,7 +63,7 @@ export function renderDesign(path, entries=[]) {
    document.getElementById('file-list-section').classList.add('hidden');
    document.getElementById('file-count-label').textContent='0';
    document.getElementById('batch-summary-pill').textContent='Total input: 0 MB';
-   const input=document.getElementById('real-file-input'); input.setAttribute('accept','.heic,.heif,image/heic,image/heif');
+   const input=document.getElementById('real-file-input'); input.setAttribute('accept','.heic,.heif,image/heic,image/heif'); input.setAttribute('aria-label','Choose HEIC or HEIF image files');
    const dz=document.getElementById('upload-dropzone'); dz.setAttribute('tabindex','0'); dz.setAttribute('role','button'); dz.setAttribute('aria-label','Choose HEIC files');
    document.getElementById('avif-subsampling').setAttribute('onchange','handleAvifModeChange(this.value)');
    document.querySelector('label[for="avif-quality-slider"]').textContent='AVIF Target Quality';
@@ -78,11 +79,30 @@ export function renderDesign(path, entries=[]) {
    document.getElementById('success-banner-title').textContent='Conversion completed';
    document.getElementById('success-banner-subtitle').textContent='Processed locally in your browser';
    document.getElementById('btn-zip-banner-text').textContent='Download All as ZIP';
+   improveConverterContent(document,format);
  }
  for(const el of document.querySelectorAll('main > section, main > div')) {
    if(active.includes(el.id)) el.classList.remove('hidden'); else el.remove();
  }
  if(path==='/blog') {
+   document.getElementById('blog-search-input').setAttribute('aria-label','Search published HEIC guides');
+   const featured=entries.find(entry=>'/blog/'+entry.data.slug===articlePath);
+   if(featured) {
+     const title=document.querySelector('#view-blog-index h2');
+     title.textContent=featured.data.title;
+     title.parentElement.querySelector('p').textContent=featured.data.description;
+     title.previousElementSibling.querySelector('span:last-child').textContent='• '+featured.data.readTime;
+     const illustration=title.parentElement.parentElement.previousElementSibling;
+     const labels=new Map([
+       ['iOS 18','Apple photo'],['HEVC Container','HEIF container'],
+       ['Lossless Decode','PNG export'],['24-Bit sRGB','8-bit RGB copy'],
+       ['Tested on Windows 11 23H2 & 24H2','Source-reviewed instructions'],
+       ['Browser, Photos App & Batch Methods','Browser export & Photos options']
+     ]);
+     for(const element of illustration.querySelectorAll('div,span')) {
+       if(!element.children.length&&labels.has(element.textContent))element.textContent=labels.get(element.textContent);
+     }
+   }
    document.getElementById('blog-articles-grid').innerHTML=entries.map(blogCard).join('');
    for(const el of document.querySelectorAll('[data-cat-chip="ALL"]')) el.textContent=`All Guides (${entries.length})`;
    document.getElementById('blog-showing-count').textContent=entries.length?'1–'+Math.min(6,entries.length):'0';
@@ -97,6 +117,17 @@ export function renderDesign(path, entries=[]) {
    document.getElementById('contact-success-box').remove();
  }
  wireNavigation(document);
+ for(const [buttonId,panelId] of [['tools-dropdown-btn','tools-dropdown-menu'],['mobile-menu-btn','mobile-nav-drawer']]) {
+   const button=document.getElementById(buttonId),panel=document.getElementById(panelId);
+   button.setAttribute('aria-controls',panelId);
+   button.setAttribute('aria-expanded',String(!panel.classList.contains('hidden')));
+ }
+ if(path==='/')for(let i=1;i<=10;i++) {
+   const panel=document.getElementById('faq-body-'+i),button=panel.previousElementSibling.querySelector('button');
+   button.setAttribute('aria-controls',panel.id);
+   button.setAttribute('aria-expanded',String(!panel.classList.contains('hidden')));
+ }
+ document.querySelector('footer a[href="/404"]')?.remove();
  for(const el of document.querySelectorAll('*'))for(const attr of [...el.attributes])if(/^on[a-z]+$/.test(attr.name)) {el.setAttribute('data-'+attr.name,attr.value);el.removeAttribute(attr.name);}
  for(const e of document.querySelectorAll('.nav-link')) {
    const href=e.getAttribute('href'); const selected=path.startsWith('/blog')?href==='/blog':href===path&&e.dataset.nav!=='heic-to-png';
@@ -118,7 +149,7 @@ export function renderDesign(path, entries=[]) {
  ];
  for(const [from,to]of corrections)body=body.replaceAll(from,to);
  const corrected=parseHTML('<html><body>'+body+'</body></html>').document;
- const faqs=path==='/'?[...corrected.querySelectorAll('[id^="faq-body-"]')].map(el=>({'@type':'Question',name:el.previousElementSibling.firstElementChild.textContent,acceptedAnswer:{'@type':'Answer',text:el.textContent.trim()}})):[];
+ const faqs=path==='/'?[...corrected.querySelectorAll('[id^="faq-body-"]')].map(el=>({'@type':'Question',name:el.previousElementSibling.querySelector('span').textContent,acceptedAnswer:{'@type':'Answer',text:el.textContent.trim()}})):[];
  return {body, bodyClass:document.body.className,faqs};
 }
 export function prepareArticle(html) {

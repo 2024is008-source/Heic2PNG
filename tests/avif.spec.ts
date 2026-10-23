@@ -24,6 +24,10 @@ function chroma(bytes:Buffer){const index=bytes.indexOf('av1C');expect(index).to
 test('AVIF default encoding, batch ZIP, quality and chroma controls produce real files',async({page})=>{
  test.setTimeout(300000);
  const errors:string[]=[],posts:string[]=[],cspErrors:string[]=[];
+ const assets:{url:string;status:number;mime:string}[]=[];
+ page.context().on('response',response=>{
+  if(/\/_astro\/.*\.(?:js|wasm)$/.test(response.url()))assets.push({url:response.url(),status:response.status(),mime:response.headers()['content-type']||''});
+ });
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts.push(r.url());});
  page.on('console',m=>{if(/Content Security Policy|unsafe-eval|WebAssembly.*refused/i.test(m.text()))cspErrors.push(m.text());});
  await page.goto('/heic-to-avif');await expect(page.locator('#avif-quality-slider')).toHaveValue('78');
@@ -39,6 +43,10 @@ test('AVIF default encoding, batch ZIP, quality and chroma controls produce real
  expect(high.bytes.length).toBeGreaterThan(low.bytes.length);expect((await decode(page,high.bytes)).hash).not.toBe((await decode(page,low.bytes)).hash);
  await page.locator('#avif-subsampling').selectOption('444');await convert(page);const fullChroma=await download(page);expect(chroma(fullChroma.bytes)).toBe(0);expect(await decode(page,fullChroma.bytes)).toMatchObject({width:1280,height:854});
  expect(errors).toEqual([]);expect(cspErrors).toEqual([]);expect(posts).toEqual([]);
+ expect(assets.some(asset=>asset.url.includes('converter.worker-'))).toBe(true);
+ const wasm=assets.filter(asset=>asset.url.endsWith('.wasm'));expect(wasm.length).toBeGreaterThan(0);
+ for(const asset of assets)expect(asset.status,asset.url).toBe(200);
+ for(const asset of wasm)expect(asset.mime,asset.url).toContain('application/wasm');
 });
 
 test('AVIF lossless matches decoded PNG pixels and uses the original aspect ratio',async({page})=>{

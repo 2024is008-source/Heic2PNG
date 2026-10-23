@@ -1,5 +1,12 @@
 # Static VPS deployment
 
+For the current HTTPS/non-www/**trailing-slash** canonical policy, review
+`heic2png.canonical.conf.example` and `../CANONICAL_URL_REPORT.md` before any
+future release. The example is a separate manual proposal, not an installed
+configuration. Replace only this site's matching server blocks after review;
+never append duplicate blocks, edit `tiksavemp4.online`, or reload automatically.
+The older `heic2png.site.conf` remains an unchanged HTTP bootstrap reference.
+
 Nothing has been deployed. These instructions operate only on this site's new directory and server block. Keep the existing website and certificates unchanged.
 
 1. Locally, install Node 24 LTS, run `npm ci`, copy `.env.example` to `.env` if overriding the support mailbox, then run `npm run build` and `npm test`. Only `dist/` is public. Do not copy the repository, test fixtures, `.env`, or `node_modules` into the document root.

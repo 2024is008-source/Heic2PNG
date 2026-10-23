@@ -26,16 +26,19 @@ test('published blog collection has matching metadata, real content, TOCs and so
   const {document:d}=parseHTML(await response.text());
   expect(d.querySelectorAll('h1').length,route).toBe(1);
   expect(d.querySelector('h1')!.textContent!.trim()).toBe(data.title);
-  expect(d.querySelector('title')!.textContent).toBe(data.title+' | HEIC2PNG.site');
-  expect(d.querySelector('meta[name="description"]')!.getAttribute('content')).toBe(data.description);
-  expect(d.querySelector('link[rel="canonical"]')!.getAttribute('href')).toBe('https://heic2png.site'+route);
+  expect(d.querySelector('title')!.textContent).toBe(data.title+' | HEIC2PNG');
+  const expectedDescription=data.slug==='how-to-convert-heic-to-png-on-windows-11'
+   ? 'Convert HEIC to PNG on Windows 11 with browser tools and compatible Photos exports. Learn codec requirements, batch options and how to check the result.'
+   : data.description;
+  expect(d.querySelector('meta[name="description"]')!.getAttribute('content')).toBe(expectedDescription);
+  expect(d.querySelector('link[rel="canonical"]')!.getAttribute('href')).toBe('https://heic2png.site'+route+'/');
   expect(d.querySelector('meta[property="og:type"]')!.getAttribute('content')).toBe('article');
   titles.add(data.title);descriptions.add(data.description);
   const graph=JSON.parse(d.querySelector('script[type="application/ld+json"]')!.textContent!)['@graph'];
-  const article=graph.find(e=>e['@type']==='Article');expect(article.headline).toBe(data.title);
-  expect(article.datePublished).toBe(new Date(data.published).toISOString());
-  expect(article.dateModified).toBe(new Date(data.updated||data.published).toISOString());
-  expect(article.mainEntityOfPage).toBe('https://heic2png.site'+route);
+  const article=graph.find(e=>e['@type']==='BlogPosting');expect(article.headline).toBe(data.title);
+  expect(article.datePublished).toBe(data.published);
+  expect(article.dateModified).toBe(data.updated||data.published);
+  expect(article.mainEntityOfPage).toBe('https://heic2png.site'+route+'/');
   expect(article.author.name).toBe(data.author);
   expect(d.querySelector('article .border-y')!.textContent).toContain('By the HEIC2PNG Editorial Team');
   const toc=[...d.querySelectorAll('.mobile-toc-collapsible a, aside nav a')];
@@ -43,6 +46,7 @@ test('published blog collection has matching metadata, real content, TOCs and so
   expect(toc.length).toBe(headings.length*2);
   for(const a of toc)expect(d.getElementById(a.getAttribute('href')!.slice(1)),route).not.toBeNull();
   expect(d.querySelectorAll('article .ad-placeholder-block').length).toBe(3);
+  expect(d.body.getAttribute('data-show-ad-areas')).toBe('false');
   expect(d.querySelector('aside > div:last-child button[disabled]')).toBeNull();
   if(data.published==='2026-10-23'){
    const body=d.querySelector('article .space-y-8')!;
@@ -50,7 +54,7 @@ test('published blog collection has matching metadata, real content, TOCs and so
    expect(text.split(' ').length,route).toBeGreaterThan(850);
    expect(body.querySelectorAll('a[href^="https://"]').length).toBeGreaterThan(1);
    expect(d.querySelector('article [role="img"]')!.getAttribute('aria-label')!.length).toBeGreaterThan(50);
-   const related=[...d.querySelectorAll('aside > div:last-child a')].map(a=>a.getAttribute('href')!.replace('/blog/',''));
+   const related=[...d.querySelectorAll('aside > div:last-child a')].map(a=>a.getAttribute('href')!.replace('/blog/','').replace(/\/$/,''));
    expect(related).toEqual(data.related);expect(related).not.toContain(data.slug);
   }
  }

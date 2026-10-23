@@ -55,12 +55,30 @@ test('static routes, SEO, sitemap and drafts',async({request,page})=>{
  for(const route of ['/','/heic-to-jpg','/heic-to-avif','/blog','/blog/how-to-convert-heic-to-png-on-windows-11','/about','/contact','/privacy','/terms']){
   const r=await request.get(route);expect(r.status()).toBe(200);const html=await r.text();expect(html).not.toContain('cdn.tailwindcss.com');
   await page.goto(route);await expect(page.locator('h1')).toHaveCount(1);titles.add(await page.title());
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href','https://heic2png.site'+route);
+  await expect(page.locator('footer a[href="/404"]')).toHaveCount(0);
+  await expect(page.getByText('404 Template',{exact:true})).toHaveCount(0);
+  await expect(page.locator('.ad-placeholder-block:visible')).toHaveCount(0);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href','https://heic2png.site'+route+(route==='/'?'':'/'));
   expect(JSON.parse(await page.locator('script[type="application/ld+json"]').textContent())).toHaveProperty('@graph');
  }
  expect(titles.size).toBe(9);expect((await request.get('/missing')).status()).toBe(404);expect((await request.get('/heic-to-avif')).status()).toBe(200);
  expect((await request.get('/blog/what-is-a-heic-file-beginners-guide')).status()).toBe(404);
  const sitemap=await (await request.get('/sitemap.xml')).text();expect(sitemap).toContain('/heic-to-avif');expect(sitemap).toContain('how-to-convert-heic-to-png-on-windows-11');expect((await request.get('/robots.txt')).status()).toBe(200);
+});
+
+test('ad areas are hidden without reserved space and can be restored together',async({page})=>{
+ for(const route of ['/','/heic-to-jpg','/heic-to-avif','/blog/how-to-convert-heic-to-png-on-mac']){
+  await page.goto(route);
+  await expect(page.locator('body')).toHaveAttribute('data-show-ad-areas','false');
+  const areas=page.locator('.ad-placeholder-block');expect(await areas.count()).toBeGreaterThan(0);
+  for(const area of await areas.all()){
+   await expect(area).toBeHidden();expect(await area.evaluate(e=>e.getBoundingClientRect().height)).toBe(0);
+  }
+  await page.locator('body').evaluate(e=>e.setAttribute('data-show-ad-areas','true'));
+  for(const area of await areas.all())await expect(area).toBeVisible();
+  await page.locator('body').evaluate(e=>e.setAttribute('data-show-ad-areas','false'));
+  await expect(page.locator('.ad-placeholder-block:visible')).toHaveCount(0);
+ }
 });
 test('blog filters, navigation, menus, FAQ and honest contact state',async({page})=>{
  await page.goto('/blog');await expect(page.locator('[data-blog-card]:visible')).toHaveCount(6);

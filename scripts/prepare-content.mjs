@@ -20,7 +20,8 @@ for(const file of fs.readdirSync('src/content/blog').filter(f=>f.endsWith('.md')
    const tokens=[...new Set(classes.split(/\s+/).filter(Boolean))];
    if(!tokens.some(t=>['inline-flex','flex','block','inline-block'].includes(t)))tokens.push('inline-block');
    if(!tokens.some(t=>['text-left','text-right','text-center'].includes(t)))tokens.push('text-center');
-   return `<a ${attrs}class="${tokens.join(' ')}"`;
+   return `<a${attrs}class="${tokens.join(' ')}"`;
  });
- fs.writeFileSync('src/content/blog/'+file,head+'\n\n'+content.trim().replace(/\n\s*\n/g,'\n')+'\n');
+ const prepared=head+'\n\n'+content.trim().replace(/\n\s*\n/g,'\n')+'\n';
+ if(prepared!==source)fs.writeFileSync('src/content/blog/'+file,prepared);
 }

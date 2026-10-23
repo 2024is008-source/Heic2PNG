@@ -1,25 +1,46 @@
 ---
 import {getCollection, render} from 'astro:content';
 import {renderDesign, prepareArticle, articlePath} from '../lib/design.mjs';
+import {canonicalPageUrl} from '../lib/urls.mjs';
+import {createStructuredData,serializeStructuredData} from '../lib/structured-data.mjs';
 import AdSlot from '../components/AdSlot.astro';
 import '../styles/generated.css';
 import '../styles/approved.css';
 export async function getStaticPaths() {
  const articles=(await getCollection('blog')).filter(e=>!e.data.draft);
- const paths=['','heic-to-jpg','heic-to-avif','blog','about','contact','privacy','terms','404'];
+ const paths=['','heic-to-jpg','heic-to-avif','blog','about','contact','privacy','terms'];
  return [...paths.map(path=>({params:{path:path||undefined}})),...articles.map(entry=>({params:{path:'blog/'+entry.data.slug},props:{entry}}))];
 }
 const articles=(await getCollection('blog')).filter(e=>!e.data.draft).sort((a,b)=>b.data.published.valueOf()-a.data.published.valueOf());
-const path=Astro.params.path?'/'+Astro.params.path:'/';
+const path=Astro.props.pathOverride||(Astro.params.path?'/'+Astro.params.path:'/');
 const entry=Astro.props.entry;
-const titles={'/':'HEIC to PNG Converter – Free, Private Online iPhone Photo Converter','/heic-to-jpg':'HEIC to JPG Converter – Free Online iPhone Photo to JPEG Tool','/blog':'HEIC & Image Format Guides – Tutorials & Comparisons','/about':'About HEIC2PNG – Private Browser Image Conversion','/contact':'Contact HEIC2PNG Support & Feedback','/privacy':'Privacy Policy – Local Browser Image Processing','/terms':'Terms of Service','/404':'404 Page Not Found'};
-const descriptions={'/':'Convert HEIC to PNG privately in your browser. Free batch conversion, original resolution and ZIP downloads. Your photos stay on your device.','/heic-to-jpg':'Convert HEIC to JPG privately in your browser with adjustable JPEG quality, batch conversion and ZIP downloads.','/blog':'Read HEIC guides, image format explanations and practical conversion tutorials.','/about':'Learn how HEIC2PNG processes images locally in your browser.','/contact':'Contact HEIC2PNG about browser conversion issues, unsupported files or editorial corrections.','/privacy':'How HEIC2PNG processes your photos locally and handles website data.','/terms':'Terms for using HEIC2PNG browser image conversion and guides.','/404':'The requested page could not be found.'};
-titles['/heic-to-avif']='HEIC to AVIF Converter – Free, Private Browser AV1 Image Tool';
-descriptions['/heic-to-avif']='Convert HEIC to AVIF privately in your browser. Adjust quality, choose 4:2:0, 4:4:4 or lossless encoding, preserve dimensions and download batch ZIP files.';
-const title=(entry?.data.title||titles[path])+' | HEIC2PNG.site';
-const description=entry?.data.description||descriptions[path];
-const canonical=new URL(path,Astro.site).href;
-let {body,bodyClass,faqs}=renderDesign(path,articles);
+const titles={
+ '/':'HEIC to PNG Converter – Free Online',
+ '/heic-to-jpg':'HEIC to JPG Converter – Free Online',
+ '/heic-to-avif':'HEIC to AVIF Converter – Free Online',
+ '/blog':'HEIC Conversion Guides – PNG, JPG & AVIF',
+ '/about':'About Our HEIC Image Converters',
+ '/contact':'Contact Support & Report Issues',
+ '/privacy':'Privacy Policy – Image Conversion & Site Data',
+ '/terms':'Terms of Service',
+ '/404':'404 Page Not Found'
+};
+const descriptions={
+ '/':'Convert HEIC to PNG with a free online converter. Add .heic files, choose image dimensions, and download PNGs individually or in a batch ZIP.',
+ '/heic-to-jpg':'Convert HEIC to JPG online for free. Adjust JPEG quality and image dimensions, then download individual JPG files or a ZIP of your converted photos.',
+ '/heic-to-avif':'Convert HEIC to AVIF online for free. Choose quality, chroma subsampling or lossless encoding, adjust dimensions, and download AVIF files or a ZIP.',
+ '/blog':'Learn how to convert HEIC photos to PNG, JPG or AVIF. Explore Windows, Mac and iPhone tutorials, format comparisons, quality tips and upload fixes.',
+ '/about':"Learn about HEIC2PNG's browser-based image converters, local photo processing, output limitations and guides for HEIC, PNG, JPG and AVIF.",
+ '/contact':'Contact HEIC2PNG about conversion problems, unsupported HEIC files or guide corrections. The contact form opens your email app to prepare a message.',
+ '/privacy':'Read how HEIC2PNG handles local image conversion, technical logs, cookies and possible advertising, plus how to contact us about privacy.',
+ '/terms':"Read the terms for using HEIC2PNG's image converters and guides, including file responsibilities, copyright and service limitations.",
+ '/404':'The requested page could not be found.'
+};
+const title=(entry?.data.title||titles[path])+' | HEIC2PNG';
+const description=descriptions[path]||entry?.data.description;
+const canonical=canonicalPageUrl(path);
+const showAdAreas=import.meta.env.PUBLIC_SHOW_AD_AREAS==='true';
+let {body,bodyClass}=renderDesign(path,articles);
 const {Content}=entry?await render(entry):{Content:undefined};
 const marker='<section id="view-blog-article"';
 let before=body,after='';
@@ -29,11 +50,7 @@ if(entry) {
 }
 // Keep every existing ad slot as a reusable component at the same location.
 const parts=before.split(/(<div class="ad-placeholder-block[\s\S]*?<\/div>\s*<\/div>)/g);
-const schema=[{'@type':'WebSite',name:'HEIC2PNG',url:Astro.site.href},{'@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Home',item:Astro.site.href},...(path==='/'?[]:[{'@type':'ListItem',position:2,name:entry?.data.title||titles[path],item:canonical}])]}];
-if(path==='/'||path==='/heic-to-jpg'||path==='/heic-to-avif') schema.push({'@type':'SoftwareApplication',name:path==='/'?'HEIC to PNG':path==='/heic-to-jpg'?'HEIC to JPG':'HEIC to AVIF',applicationCategory:'MultimediaApplication',operatingSystem:'Web browser',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'}});
-if(path==='/blog')schema.push({'@type':'CollectionPage',name:'HEIC & Image Format Guides',url:canonical});
-if(faqs.length)schema.push({'@type':'FAQPage',mainEntity:faqs});
-if(entry)schema.push({'@type':'Article',headline:entry.data.title,description,datePublished:entry.data.published.toISOString(),dateModified:(entry.data.updated||entry.data.published).toISOString(),author:{'@type':'Organization',name:entry.data.author},mainEntityOfPage:canonical,...(entry.data.image?{image:new URL(entry.data.image,Astro.site).href}:{})});
+const schema=createStructuredData({path,title,description,entry,noindex:path==='/404'});
 ---
 <!doctype html>
 <html lang="en" class="scroll-smooth">
@@ -44,7 +61,7 @@ if(entry)schema.push({'@type':'Article',headline:entry.data.title,description,da
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
   <meta property="og:type" content={entry?'article':'website'} />
-  <meta property="og:site_name" content="HEIC2PNG.site" />
+  <meta property="og:site_name" content="HEIC2PNG" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonical} />
@@ -54,9 +71,9 @@ if(entry)schema.push({'@type':'Article',headline:entry.data.title,description,da
   {entry?.data.image&&<meta property="og:image" content={new URL(entry.data.image,Astro.site).href} />}
   {path==='/404'&&<meta name="robots" content="noindex,follow" />}
   <link href="/fonts/fonts.css" rel="stylesheet" />
-  <script is:inline type="application/ld+json" set:html={JSON.stringify({'@context':'https://schema.org','@graph':schema}).replace(/</g,'\\u003c')} />
+  {schema&&<script is:inline type="application/ld+json" set:html={serializeStructuredData(schema)} />}
  </head>
- <body class={bodyClass} data-format={path==='/heic-to-avif'?'AVIF':path==='/heic-to-jpg'?'JPG':'PNG'}>
+ <body class={bodyClass} data-show-ad-areas={String(showAdAreas)} data-format={path==='/heic-to-avif'?'AVIF':path==='/heic-to-jpg'?'JPG':'PNG'}>
   {parts.map((part,i)=>i%2?<AdSlot html={part}/>:<Fragment set:html={part}/>)}
   {Content&&<Content />}
   <Fragment set:html={after} />

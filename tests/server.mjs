@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-const root=path.resolve('dist');
+const root=path.resolve(process.env.HEIC_TEST_DIST||'dist');
 http.createServer((req,res)=>{
  const url=new URL(req.url,'http://localhost');let pathname=decodeURIComponent(url.pathname);
  const special={'/__original':path.resolve('heic_to_png_converter_free_private_online_iphone_photo_converter_heic2png_site.html'),'/__tailwind':path.resolve('tests/fixtures/tailwind-cdn.js')};

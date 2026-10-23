@@ -177,11 +177,14 @@ if($('file-rows-container')){
 }
 if($('blog-search-input')){$('blog-search-input').value=blogQuery;renderBlogCards();}
 document.addEventListener('click',e=>{if(!$('tools-dropdown-container')?.contains(e.target))closeToolsDropdown();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeToolsDropdown();closeMobileMenu();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeToolsDropdown();closeMobileMenu();syncMenuDisclosureState();}});
 // Match ARIA state to the preserved toggles without changing their visuals.
-document.addEventListener('click',e=>{
- const faq=e.target.closest('[data-onclick^="toggleFaq"]');if(faq){const n=faq.getAttribute('data-onclick').match(/\d+/)[0];faq.setAttribute('aria-expanded',String(!$('faq-body-'+n).classList.contains('hidden')));}
+function syncMenuDisclosureState(){
  $('tools-dropdown-btn')?.setAttribute('aria-expanded',String(!$('tools-dropdown-menu').classList.contains('hidden')));
  $('mobile-menu-btn')?.setAttribute('aria-expanded',String(!$('mobile-nav-drawer').classList.contains('hidden')));
+}
+document.addEventListener('click',e=>{
+ const faq=e.target.closest('[data-onclick^="toggleFaq"]');if(faq){const n=faq.getAttribute('data-onclick').match(/\d+/)[0];faq.setAttribute('aria-expanded',String(!$('faq-body-'+n).classList.contains('hidden')));}
+ syncMenuDisclosureState();
 });
 window.addEventListener('pagehide',()=>{generation++;cancelActive?.();fileQueue.forEach(release);});

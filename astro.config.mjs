@@ -1,3 +1,4 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
-export default defineConfig({ site: 'https://heic2png.site', output: 'static', integrations:[mdx()], build: { format: 'directory' }, vite:{worker:{format:'es'}} });
+import {siteOrigin} from './src/lib/urls.mjs';
+export default defineConfig({ site: siteOrigin, trailingSlash: 'always', output: 'static', integrations:[mdx()], build: { format: 'directory' }, vite:{worker:{format:'es'}} });

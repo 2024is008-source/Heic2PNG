@@ -102,8 +102,10 @@
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     /* Ethical AdSense Container Styling */
+    body[data-show-ad-areas="false"] .ad-placeholder-block {
+      display: none !important;
+    }
     .adsense-slot {
       background: repeating-linear-gradient(-45deg, #F8FAFC, #F8FAFC 10px, #F1F5F9 10px, #F1F5F9 20px);
       border: 1px dashed #CBD5E1;
     }
-  
