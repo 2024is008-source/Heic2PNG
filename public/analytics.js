@@ -1,4 +1,4 @@
-// One standard Google tag. Consent gates loading; GA4 owns page-view delivery.
+// Default-on production analytics, with saved opt-outs and GPC respected.
 (() => {
   if (window.__heicGa4Installed) return;
   window.__heicGa4Installed = true;
@@ -8,7 +8,7 @@
   const lifetime = 180 * 86400000;
   const enabled = document.currentScript?.dataset.enabled === 'true' && location.origin === origin;
   const blocked = () => navigator.globalPrivacyControl === true;
-  let started = false, revoked = false, automatic = false, rejectedHere = false;
+  let started = false, revoked = false, rejectedHere = false;
   window['ga-disable-' + id] = true;
 
   function choice() {
@@ -21,14 +21,14 @@
       return saved.expires > Date.now() ? 'granted' : 'expired';
     } catch { return 'unavailable'; }
   }
-  const permitted = () => enabled && !blocked() && !revoked && !rejectedHere && (choice() === 'granted' || (choice() === null && automatic));
+  const permitted = () => enabled && !blocked() && !revoked && !rejectedHere && [null, 'granted', 'expired'].includes(choice());
   function status(message) {
-    const accept = document.querySelector('[data-analytics-consent="granted"]');
+    const accept = document.querySelector('[data-analytics-preference="granted"]');
     if (accept) accept.disabled = !enabled || blocked();
-    const reject = document.querySelector('[data-analytics-consent="denied"]');
+    const reject = document.querySelector('[data-analytics-preference="denied"]');
     if (reject) reject.disabled = false;
-    const output = document.getElementById('analytics-consent-status');
-    if (output) output.textContent = message || (!enabled ? 'Analytics is disabled here.' : blocked() ? 'Global Privacy Control keeps analytics off.' : permitted() ? 'Analytics is on. Choose Reject analytics to turn it off.' : 'Analytics is off. You can accept or reject it here.');
+    const output = document.getElementById('analytics-status');
+    if (output) output.textContent = message || (!enabled ? 'Analytics is disabled here.' : blocked() ? 'Global Privacy Control keeps analytics off.' : permitted() ? 'Analytics is on. You can turn analytics off below.' : 'Analytics is off. You can change your preference below.');
   }
   function pageFields() {
     let page = new URL('/404/', origin);
@@ -75,23 +75,12 @@
     }
     status();
   }
-  async function initialize() {
-    if (!enabled || blocked() || choice() === 'denied') { stop(); return; }
-    if (choice() === 'granted') { start(); return; }
-    if (choice() === null) {
-      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 2000);
-      try {
-        // Policy header is set per visitor at the edge, never by a query or build-time country list.
-        const response = await fetch(location.pathname, {method: 'HEAD', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error', signal: controller.signal});
-        automatic = response.ok && response.headers.get('X-Analytics-Consent') === 'not-required';
-      } catch { /* Missing/unavailable policy means prior opt-in. */ }
-      finally { clearTimeout(timer); }
-    }
-    if (permitted()) start();
+  function initialize() {
+    if (permitted()) start(); else stop();
     status();
   }
-  document.addEventListener('click', event => {
-    const value = event.target.closest?.('[data-analytics-consent]')?.dataset.analyticsConsent;
+  document.getElementById('analytics-choices')?.addEventListener('click', event => {
+    const value = event.target.closest?.('[data-analytics-preference]')?.dataset.analyticsPreference;
     if (!['granted', 'denied'].includes(value) || (value === 'granted' && (!enabled || blocked()))) return;
     if (value === 'denied') rejectedHere = true;
     try { localStorage.setItem(key, JSON.stringify({version: 1, value, expires: Date.now() + lifetime})); }
@@ -101,7 +90,7 @@
     else if (revoked) status('Choice saved. Analytics can resume on your next page load.');
     else { start(); status(); }
   });
-  window.addEventListener('storage', event => { if (event.key === key || event.key === null) { automatic = false; if (choice() !== 'granted') stop(); else start(); status(); } });
+  window.addEventListener('storage', event => { if (event.key === key || event.key === null) { if (permitted()) start(); else stop(); status(); } });
   function recheck() { if (blocked() || (started && !permitted())) stop(); }
   window.addEventListener('focus', recheck);
   window.addEventListener('pageshow', recheck); // No extra manual page view on BFCache restoration.

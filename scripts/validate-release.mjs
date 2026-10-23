@@ -14,10 +14,10 @@ for(const url of urls){const u=new URL(url);assert.equal(u.origin,'https://heic2
  assert.equal(analytics.length,1,'Expected one external analytics initializer: '+url);
  assert.ok(['true','false'].includes(analytics[0].getAttribute('data-enabled')));
  assert.ok(!analytics[0].hasAttribute('data-auto-countries')&&!analytics[0].hasAttribute('data-events'));
- assert.equal(d.querySelectorAll('script[src*="googletagmanager.com"]').length,0,'Google must be inserted only after permission');
+ assert.equal(d.querySelectorAll('script[src*="googletagmanager.com"]').length,0,'Google must be inserted only by the single runtime initializer');
  assert.equal(d.querySelectorAll('#analytics-consent').length,0,'Removed analytics popup must not be present');
  assert.equal(d.querySelectorAll('footer a[href="/privacy/#analytics-preferences"]').length,1,'Privacy choices must stay reachable');
- assert.equal(d.querySelectorAll('#analytics-choices').length,u.pathname==='/privacy/'?1:0,'Consent controls belong only to the privacy article');
+ assert.equal(d.querySelectorAll('#analytics-choices').length,u.pathname==='/privacy/'?1:0,'Privacy controls belong only to the privacy article');
  for(const e of d.querySelectorAll('script[src],link[rel="stylesheet"],link[rel="icon"],link[rel="manifest"],image[href]')){const src=e.getAttribute('src')||e.getAttribute('href');if(src.startsWith('/'))assert.ok(fs.existsSync(path.join(root,src)),src);}
 }
 assert.ok(fs.readFileSync(root+'/robots.txt','utf8').includes('Sitemap: https://heic2png.site/sitemap.xml'));
