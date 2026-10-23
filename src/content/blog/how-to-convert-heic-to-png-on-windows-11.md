@@ -295,19 +295,10 @@ Get-ChildItem -Path "$env:USERPROFILE\Pictures" -Filter *.heic |
               <div class="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-soft">
                 <div class="text-xs font-bold uppercase tracking-wider text-[#0F172A] mb-3">Related Guides</div>
                 <div class="space-y-3 text-xs">
-                  <button type="button" disabled title="Guide not yet published" class="text-left block group">
-                    <div class="font-bold text-[#0F172A] group-hover:text-[#4F46E5]">HEIC vs PNG: Quality, File Size and Compatibility</div>
-                    <div class="text-[#64748B] mt-0.5">Image Formats • 6 min read</div>
-                  </button>
-                  <button type="button" disabled title="Guide not yet published" class="text-left block group pt-2 border-t border-slate-100">
-                    <div class="font-bold text-[#0F172A] group-hover:text-[#4F46E5]">How to Fix HEIC Files That Won't Open</div>
-                    <div class="text-[#64748B] mt-0.5">Troubleshooting • 5 min read</div>
-                  </button>
-                  <button type="button" disabled title="Guide not yet published" class="text-left block group pt-2 border-t border-slate-100">
-                    <div class="font-bold text-[#0F172A] group-hover:text-[#4F46E5]">How to Convert Multiple HEIC Photos at Once</div>
-                    <div class="text-[#64748B] mt-0.5">Tutorials • 5 min read</div>
-                  </button>
-                </div>
+<a href="/blog/heic-vs-png-quality-file-size-compatibility" class="text-left block group"><div class="font-bold text-[#0F172A] group-hover:text-[#4F46E5]">HEIC vs PNG: Quality, File Size and Compatibility</div><div class="text-[#64748B] mt-0.5">Image Formats • 5 min read</div></a>
+<a href="/blog/how-to-fix-heic-files-that-wont-open" class="text-left block group pt-2 border-t border-slate-100"><div class="font-bold text-[#0F172A] group-hover:text-[#4F46E5]">HEIC Not Supported? Fix Opening and Upload Errors</div><div class="text-[#64748B] mt-0.5">Troubleshooting • 6 min read</div></a>
+<a href="/blog/how-to-open-heic-files-on-windows-and-mac" class="text-left block group pt-2 border-t border-slate-100"><div class="font-bold text-[#0F172A] group-hover:text-[#4F46E5]">How to Open HEIC Files on Windows 10 and Mac</div><div class="text-[#64748B] mt-0.5">HEIC Guides • 5 min read</div></a>
+</div>
               </div>
             </aside>
           </div>

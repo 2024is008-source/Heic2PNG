@@ -59,13 +59,13 @@ test('static routes, SEO, sitemap and drafts',async({request,page})=>{
   expect(JSON.parse(await page.locator('script[type="application/ld+json"]').textContent())).toHaveProperty('@graph');
  }
  expect(titles.size).toBe(9);expect((await request.get('/missing')).status()).toBe(404);expect((await request.get('/heic-to-avif')).status()).toBe(200);
- expect((await request.get('/blog/heic-vs-png-quality-file-size-compatibility')).status()).toBe(404);
+ expect((await request.get('/blog/what-is-a-heic-file-beginners-guide')).status()).toBe(404);
  const sitemap=await (await request.get('/sitemap.xml')).text();expect(sitemap).toContain('/heic-to-avif');expect(sitemap).toContain('how-to-convert-heic-to-png-on-windows-11');expect((await request.get('/robots.txt')).status()).toBe(200);
 });
 test('blog filters, navigation, menus, FAQ and honest contact state',async({page})=>{
- await page.goto('/blog');await expect(page.locator('[data-blog-card]:visible')).toHaveCount(1);
+ await page.goto('/blog');await expect(page.locator('[data-blog-card]:visible')).toHaveCount(6);
  await page.locator('#blog-search-input').fill('does not exist');await expect(page.locator('#blog-no-results')).toBeVisible();
- await page.getByRole('button',{name:'Show All Guides',exact:true}).click();await page.getByRole('button',{name:'Image Formats',exact:true}).click();await expect(page.locator('#blog-no-results')).toBeVisible();
+ await page.getByRole('button',{name:'Show All Guides',exact:true}).click();await page.getByRole('button',{name:'Image Formats',exact:true}).click();await expect(page.locator('[data-blog-card]:visible')).toHaveCount(2);await expect(page.locator('#blog-no-results')).toBeHidden();
  await page.goto('/');await page.locator('[data-onclick="toggleFaq(2)"]').click();await expect(page.locator('#faq-body-2')).toBeVisible();
  await page.locator('#tools-dropdown-btn').click();await expect(page.locator('#tools-dropdown-menu')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('#tools-dropdown-menu')).toBeHidden();
  await page.setViewportSize({width:375,height:800});await page.locator('#mobile-menu-btn').click();await expect(page.locator('#mobile-nav-drawer')).toBeVisible();
