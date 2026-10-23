@@ -3,6 +3,9 @@ import { parseHTML } from 'linkedom';
 import original from '../../heic_to_png_converter_free_private_online_iphone_photo_converter_heic2png_site.html?raw';
 import helpers from '../design/helpers.js?raw';
 import {improveConverterContent} from './converter-content.mjs';
+import {updatePrivacyPolicy} from './privacy.mjs';
+import logoLightUrl from '../../public/brand/heic2png-logo-light.webp?url&no-inline';
+import logoDarkUrl from '../../public/brand/heic2png-logo-dark.webp?url&no-inline';
 export const articlePath = '/blog/how-to-convert-heic-to-png-on-windows-11';
 export const routes = {home:'/', 'heic-to-png':'/', 'heic-to-jpg':'/heic-to-jpg','heic-to-avif':'/heic-to-avif',blog:'/blog',article:articlePath,about:'/about',contact:'/contact',privacy:'/privacy',terms:'/terms','404':'/404'};
 const views = {'/':['view-converter-shell','content-home-png'],'/heic-to-jpg':['view-converter-shell','content-heic-to-jpg'],'/heic-to-avif':['view-converter-shell','content-heic-to-avif'],'/blog':['view-blog-index'],'/about':['view-about'],'/contact':['view-contact'],'/privacy':['view-privacy'],'/terms':['view-terms'],'/404':['view-404'],[articlePath]:['view-blog-article']};
@@ -44,7 +47,7 @@ export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail
  const {document}=parseHTML(original);
  const active=views[path]||['view-blog-article'];
  // Cropped, compressed theme variants retain the existing branding row sizes.
- const logo=(width,height)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 1953 353" preserveAspectRatio="xMinYMid meet" role="img" aria-label="HEIC2PNG.site" class="site-logo shrink-0"><image class="logo-light" href="/brand/heic2png-logo-light.webp" width="1953" height="353" /><image class="logo-dark" href="/brand/heic2png-logo-dark.webp" width="1953" height="353" /></svg>`;
+ const logo=(width,height)=>`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 1953 353" preserveAspectRatio="xMinYMid meet" role="img" aria-label="HEIC2PNG.site" class="site-logo shrink-0"><image class="logo-light" href="${logoLightUrl}" width="1953" height="353" /><image class="logo-dark" href="${logoDarkUrl}" width="1953" height="353" /></svg>`;
  document.querySelector('header a[aria-label="HEIC2PNG Home"]').innerHTML=logo(176.65625,36);
  // Replace the trust badge with an accessible, compact theme control.
  const headerActions=document.getElementById('mobile-menu-btn').parentElement;
@@ -73,7 +76,7 @@ export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail
    document.getElementById('file-count-label').textContent='0';
    document.getElementById('batch-summary-pill').textContent='Total input: 0 MB';
    const input=document.getElementById('real-file-input'); input.setAttribute('accept','.heic,.heif,image/heic,image/heif'); input.setAttribute('aria-label','Choose HEIC or HEIF image files');
-   const dz=document.getElementById('upload-dropzone'); dz.setAttribute('tabindex','0'); dz.setAttribute('role','button'); dz.setAttribute('aria-label','Choose HEIC files');
+   const dz=document.getElementById('upload-dropzone'); dz.setAttribute('tabindex','0'); dz.setAttribute('role','button');
    document.getElementById('avif-subsampling').setAttribute('onchange','handleAvifModeChange(this.value)');
    document.querySelector('label[for="avif-quality-slider"]').textContent='AVIF Target Quality';
    document.getElementById('avif-quality-slider').nextElementSibling.textContent='Applies to the local AV1 encoder. Lossless mode uses full quality.';
@@ -143,7 +146,7 @@ export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail
   if(el.textContent.includes('OS-tested tutorials'))el.textContent='Alongside our free conversion tools, our guides explain HEIC formats and common Windows, macOS and iPhone workflows. Available features depend on your device, browser and application version.';
  }
  if(path==='/terms')for(const el of document.querySelectorAll('#view-terms span'))if(el.textContent.trim()==='Document Template')el.textContent='Legal';
- if(path==='/privacy')for(const el of document.querySelectorAll('#view-privacy p'))if(el.textContent.includes('We use minimal local preferences'))el.textContent=el.textContent.replace('We use minimal local preferences to remember your preferred conversion settings during your session.','Conversion settings are held in page memory and reset when you leave or reload the page.');
+ if(path==='/privacy')updatePrivacyPolicy(document);
  wireNavigation(document);
  for(const span of document.querySelectorAll('#content-home-png span')){
   if(span.textContent.trim()==='Download ZIP'||span.classList.contains('text-slate-300'))span.parentElement.classList.add('mobile-wrap-illustration');

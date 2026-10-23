@@ -25,7 +25,7 @@ Open the localhost URL printed by Astro. `npm run build` produces `dist/`; `npm 
 - Astro Content Collections with Markdown/MDX, validated metadata, dates, author, category, descriptions, draft exclusion, search, category filtering and six-item client pagination over statically rendered article links. Featured images and related slugs are available in the schema. The supplied fully styled article stays in its approved HTML-in-Markdown template; copy its structure when authoring another article to preserve the design.
 - Unique titles/descriptions, canonical URLs, Open Graph/Twitter metadata, structured data, sitemap and robots.txt. All three verified converters are indexable; drafts have no public routes or sitemap entries.
 - Compiled Tailwind 3 CSS with the exact original configuration and custom CSS, locally hosted approved font families/weights, lazy decoder/ZIP loading, static asset caching and a CSP-compatible event binding layer without inline JavaScript execution.
-- Existing ad containers and spacing retained. Publisher configuration is validated, but ad loading is deliberately gated off until a consent-controlled isolated integration is verified. No ad/analytics script has access to the converter document or its images.
+- Existing ad containers and spacing retained. Ad loading remains disabled. GA4 is separately release-gated and opt-in only, with controls in the existing Privacy Policy. Its allowlisted events exclude files, filenames, EXIF, image contents, local paths and error messages. After consent the Google tag runs in the page context; it is not an isolated sandbox. See [GA4_IMPLEMENTATION.md](GA4_IMPLEMENTATION.md) for activation prerequisites, CSP review and verification.
 
 ## Important files
 

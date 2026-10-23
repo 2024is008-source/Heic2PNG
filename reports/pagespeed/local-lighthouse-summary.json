@@ -1,0 +1,70 @@
+[
+  {
+    "mode": "mobile",
+    "stage": "before",
+    "scores": {
+      "performance": 63,
+      "accessibility": 97,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "fcp": 5715.7656,
+    "lcp": 6315.7656,
+    "cls": 0.00451370698575775,
+    "tbt": 9,
+    "contrast": 0,
+    "console": 1,
+    "cache": "Est savings of 776 KiB"
+  },
+  {
+    "mode": "mobile",
+    "stage": "after",
+    "scores": {
+      "performance": 77,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "fcp": 3761.287910280228,
+    "lcp": 4232.431865420342,
+    "cls": 0.00451370698575775,
+    "tbt": 0,
+    "contrast": 1,
+    "console": 1,
+    "cache": "Est savings of 439 KiB"
+  },
+  {
+    "mode": "desktop",
+    "stage": "before",
+    "scores": {
+      "performance": 94,
+      "accessibility": 97,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "fcp": 1151.5997177947297,
+    "lcp": 1231.5997177947297,
+    "cls": 0.002794575264961352,
+    "tbt": 0,
+    "contrast": 0,
+    "console": 1,
+    "cache": "Est savings of 776 KiB"
+  },
+  {
+    "mode": "desktop",
+    "stage": "after",
+    "scores": {
+      "performance": 99,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "fcp": 729.0271674386429,
+    "lcp": 815.0452790644048,
+    "cls": 0.002794575264961352,
+    "tbt": 0,
+    "contrast": 1,
+    "console": 1,
+    "cache": "Est savings of 439 KiB"
+  }
+]

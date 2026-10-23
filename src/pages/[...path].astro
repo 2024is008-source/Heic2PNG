@@ -8,6 +8,8 @@ import AdSlot from '../components/AdSlot.astro';
 import '../generated/styles.css';
 import '../styles/approved.css';
 import '../styles/theme.css';
+import fontFaces from '../../public/fonts/fonts.css?raw';
+import themeUrl from '../../public/theme.js?url&no-inline';
 export async function getStaticPaths() {
  const articles=(await getCollection('blog')).filter(e=>!e.data.draft);
  return [...pagePaths.map(path=>({params:{path:path.slice(1)||undefined}})),...articles.map(entry=>({params:{path:'blog/'+entry.data.slug},props:{entry}}))];
@@ -59,7 +61,8 @@ const schema=createStructuredData({path,title,description,entry,noindex});
  <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script is:inline src="/theme.js"></script>
+  <script is:inline src={themeUrl}></script>
+  <script is:inline defer src="/analytics.js" data-enabled={String(import.meta.env.PROD && import.meta.env.PUBLIC_GA4_ENABLED==='true')} data-events={String(import.meta.env.PUBLIC_GA4_EVENTS==='true')}></script>
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
@@ -85,7 +88,7 @@ const schema=createStructuredData({path,title,description,entry,noindex});
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#4F46E5" />
   {noindex&&<meta name="robots" content="noindex,follow" />}
-  <link href="/fonts/fonts.css" rel="stylesheet" />
+  <style is:inline set:html={fontFaces}></style>
   {schema&&<script is:inline type="application/ld+json" set:html={serializeStructuredData(schema)} />}
  </head>
  <body class={bodyClass} data-show-ad-areas={String(showAdAreas)} data-format={path==='/heic-to-avif'?'AVIF':path==='/heic-to-jpg'?'JPG':'PNG'}>

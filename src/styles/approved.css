@@ -198,3 +198,15 @@
       html.scroll-smooth { scroll-behavior: auto; }
       .transition-soft { transition-duration: 0.01ms; }
     }
+    /* Preserve normal geometry while allowing the header to fit at 200% text. */
+    @media (max-width: 639px) {
+      header > div:first-child { padding-inline: 16px; gap: 12px; }
+      header > div:first-child > div:last-child { gap: 8px; }
+    }
+    /* Small text on pale surfaces needs at least 4.5:1 contrast. */
+    html:not([data-theme="dark"]) .converter-format-tabs [aria-selected="false"],
+    html:not([data-theme="dark"]) #upload-dropzone p,
+    html:not([data-theme="dark"]) main code { color: #475569; }
+    html:not([data-theme="dark"]) #content-home-png [class~="text-[#10B981]"] { color: #047857; }
+    html:not([data-theme="dark"]) #content-home-png [class~="text-[#8B5CF6]"] { color: #7C3AED; }
+    html:not([data-theme="dark"]) #content-home-png [class~="bg-emerald-500"] { background-color: #047857; }
