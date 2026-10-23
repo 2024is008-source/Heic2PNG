@@ -7,9 +7,8 @@
   const key = 'heic2png-analytics-consent-v1'; // Preserve existing opt-outs.
   const lifetime = 180 * 86400000;
   const enabled = document.currentScript?.dataset.enabled === 'true' && location.origin === origin;
-  const banner = document.getElementById('analytics-consent');
   const blocked = () => navigator.globalPrivacyControl === true;
-  let started = false, revoked = false, automatic = false, dismissed = false, previousFocus;
+  let started = false, revoked = false, automatic = false, rejectedHere = false;
   window['ga-disable-' + id] = true;
 
   function choice() {
@@ -22,21 +21,14 @@
       return saved.expires > Date.now() ? 'granted' : 'expired';
     } catch { return 'unavailable'; }
   }
-  const permitted = () => enabled && !blocked() && !revoked && (choice() === 'granted' || (choice() === null && automatic));
+  const permitted = () => enabled && !blocked() && !revoked && !rejectedHere && (choice() === 'granted' || (choice() === null && automatic));
   function status(message) {
-    document.querySelector('[data-analytics-consent="granted"]')?.toggleAttribute('disabled', !enabled || blocked());
-    document.getElementById('analytics-consent-status').textContent = message || (!enabled ? 'Analytics is disabled here.' : blocked() ? 'Global Privacy Control keeps analytics off.' : permitted() ? 'Analytics is on. You can reject to turn it off.' : 'Analytics is off.');
-  }
-  function show(focus = false) {
-    banner.hidden = false;
-    document.querySelector('[data-analytics-settings]')?.setAttribute('aria-expanded', 'true');
-    status();
-    if (focus) { previousFocus = document.activeElement; document.getElementById('analytics-consent-title').focus(); }
-  }
-  function hide() {
-    banner.hidden = true;
-    document.querySelector('[data-analytics-settings]')?.setAttribute('aria-expanded', 'false');
-    previousFocus?.focus(); previousFocus = null;
+    const accept = document.querySelector('[data-analytics-consent="granted"]');
+    if (accept) accept.disabled = !enabled || blocked();
+    const reject = document.querySelector('[data-analytics-consent="denied"]');
+    if (reject) reject.disabled = false;
+    const output = document.getElementById('analytics-consent-status');
+    if (output) output.textContent = message || (!enabled ? 'Analytics is disabled here.' : blocked() ? 'Global Privacy Control keeps analytics off.' : permitted() ? 'Analytics is on. Choose Reject analytics to turn it off.' : 'Analytics is off. You can accept or reject it here.');
   }
   function pageFields() {
     let page = new URL('/404/', origin);
@@ -71,6 +63,7 @@
     tag.referrerPolicy = 'strict-origin';
     tag.onerror = () => status('Analytics could not load. The converter remains available.');
     document.head.append(tag);
+    status();
   }
   function stop() {
     window['ga-disable-' + id] = true;
@@ -94,22 +87,21 @@
       } catch { /* Missing/unavailable policy means prior opt-in. */ }
       finally { clearTimeout(timer); }
     }
-    if (permitted()) { start(); if (!dismissed && !previousFocus) hide(); }
-    else if (!blocked() && choice() !== 'denied' && !dismissed) show();
+    if (permitted()) start();
+    status();
   }
   document.addEventListener('click', event => {
-    if (event.target.closest?.('[data-analytics-settings]')) { event.preventDefault(); show(true); return; }
     const value = event.target.closest?.('[data-analytics-consent]')?.dataset.analyticsConsent;
     if (!['granted', 'denied'].includes(value) || (value === 'granted' && (!enabled || blocked()))) return;
-    dismissed = true;
+    if (value === 'denied') rejectedHere = true;
     try { localStorage.setItem(key, JSON.stringify({version: 1, value, expires: Date.now() + lifetime})); }
-    catch { stop(); if (value === 'denied') hide(); else status('Your browser could not save this choice. Analytics remains off.'); return; }
-    if (value === 'denied') { stop(); hide(); }
+    catch { rejectedHere = true; stop(); status('Your browser could not save this choice. Analytics remains off.'); return; }
+    if (value === 'granted') rejectedHere = false;
+    if (value === 'denied') stop();
     else if (revoked) status('Choice saved. Analytics can resume on your next page load.');
-    else { start(); hide(); }
+    else { start(); status(); }
   });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') { dismissed = true; hide(); } });
-  window.addEventListener('storage', event => { if (event.key === key || event.key === null) { automatic = false; if (choice() !== 'granted') stop(); else start(); hide(); } });
+  window.addEventListener('storage', event => { if (event.key === key || event.key === null) { automatic = false; if (choice() !== 'granted') stop(); else start(); status(); } });
   function recheck() { if (blocked() || (started && !permitted())) stop(); }
   window.addEventListener('focus', recheck);
   window.addEventListener('pageshow', recheck); // No extra manual page view on BFCache restoration.

@@ -1,112 +1,100 @@
-# Standard GA4 integration — HEIC2PNG.site
+# GA4 without a consent popup — HEIC2PNG.site
 
-Measurement ID: **G-W3XNRQR60H**. No commit, push, deployment, Cloudflare change, Nginx change or TikSaveMP4 access was performed.
+Baseline: `8355a72`, verified as the current local HEAD. Updated October 24, 2026 (Asia/Colombo). Measurement ID: **G-W3XNRQR60H**. No commit, push, deployment, Nginx change, Cloudflare modification or TikSaveMP4 access was performed.
 
-## Implementation and removed legacy behavior
+## Changes and deleted code
 
-`public/analytics.js` is an external initializer loaded once from the shared Astro page. Vite fingerprints its URL. It inserts one asynchronous official `https://www.googletagmanager.com/gtag/js?id=G-W3XNRQR60H` tag after permission and calls `gtag('config', id, options)` once. GA4 sends its default page view; there is no custom `page_view` event, `send_page_view:false`, history controller, or BFCache view injection. This is a static multipage site without Astro client routing. Repeated acceptance does not send another view.
+| File | Change |
+| --- | --- |
+| `public/analytics.js` | Removed popup open/close state, focus management, Escape handling and footer-link interception. Status output is optional and only updates inline policy controls. Preserved the standard Google tag, attribution filtering, consent/header gates, saved choices, GPC, cookie deletion, cross-tab updates and duplicate guards. A rejection also stays effective for the current document if storage cannot save it. |
+| `src/components/AnalyticsConsent.astro` | **Deleted** the globally mounted popup component. |
+| `src/styles/analytics-consent.css` | **Deleted** the fixed overlay, z-index, panel, popup-focus and popup-button rules. |
+| `src/styles/privacy-choices.css` | Added narrowly scoped styles for the inline controls; no fixed position, modal, overlay or automatic reveal. |
+| `src/pages/[...path].astro` | Removed the popup import/mount; imports inline-policy styles. Retains exactly one external fingerprinted analytics initializer and all existing metadata. |
+| `src/lib/design.mjs` | Retained the footer Privacy choices link as a normal `/privacy/#analytics-preferences` anchor; removed obsolete popup attributes. |
+| `src/lib/privacy.mjs` | Updated disclosure and placed equal Accept analytics / Reject analytics controls within the Privacy Policy, with an accessible status and no-JavaScript explanation. |
+| `scripts/validate-release.mjs` | Checks the popup is absent, the footer link is reachable and inline controls occur only on the Privacy Policy, in addition to the existing canonical/asset checks. |
+| `tests/analytics.spec.ts` | Replaced popup-specific tests with no-popup/inline-choice coverage; retained attribution, duplicate, consent, storage, GPC, CSP and actual PNG/JPG/AVIF/ZIP regressions. |
+| `README.md`, this guide | Replaced obsolete banner descriptions and recorded deployment/verification instructions. |
 
-Removed: diagnostic country lookup, browser country lists, `PUBLIC_GA4_AUTO_COUNTRIES`, `PUBLIC_GA4_EVENTS`, custom conversion/download/failure events and their observation hooks, the old manual page-view controller, obsolete regional tests and obsolete documentation. No standalone files needed deletion: the initializer, policy helper, tests and guide were replaced in place. The existing compact consent component/CSS and footer link are reused for the consent that is still required. There are no permission buttons inside the Privacy Policy article.
+No converter runtime, encoder, ZIP logic, SEO values, canonical helpers, sitemap, robots, fonts, logos, homepage layout, mobile styles or Nginx files were changed. Other than the requested removal of the shared popup, visible changes are confined to privacy-choice controls/disclosure on the Privacy Policy. No dependency or environment-variable additions were needed.
 
-Changed/added files in the working tree:
+## Privacy behavior
 
-- `.env.example`: one analytics enable flag; removed country/event flags.
-- `public/analytics.js`: standard Google tag, attribution filtering and small consent gate.
-- `src/pages/[...path].astro`: one external shared initializer, no regional/event attributes.
-- `src/scripts/runtime.txt`: removed analytics observers only; encoding/download behavior unchanged.
-- `src/lib/privacy.mjs`: short disclosure and withdrawal explanation.
-- `src/lib/design.mjs`: persistent footer Privacy choices link.
-- `src/components/AnalyticsConsent.astro`: minimal shared accessible Accept/Reject panel.
-- `src/styles/analytics-consent.css`: isolated panel styles; existing site design is unchanged.
-- `tests/analytics.spec.ts`: standard configuration, attribution, consent and actual conversion regressions.
-- `README.md` and this guide: current behavior and deployment/verification instructions.
+| Visitor state | Result |
+| --- | --- |
+| Production enabled, no saved choice, trusted `X-Analytics-Consent: not-required` response | GA4 starts automatically on the current page, without visiting Privacy, accepting a prompt or storing invented consent. |
+| `required`, missing, malformed, failed or timed-out policy response | No Google tag, analytics requests or Analytics cookies before opt-in. No popup appears. The normal footer link leads to inline Accept/Reject controls. Visitors may simply ignore analytics and use every converter. |
+| Valid saved acceptance | GA4 starts automatically; acceptance expires after 180 days. |
+| Saved rejection, including an old rejection timestamp | GA4 stays off until the visitor changes that choice or clears browser storage. |
+| Global Privacy Control | GA4 stays off even with a permitting regional header or saved acceptance. Inline Accept is disabled while GPC is active. |
+| Expired/malformed choice or unavailable preference storage | No automatic fallback to permission. A fresh successfully saved acceptance is needed. An unsuccessful save keeps collection off, including while policy resolution is in flight. |
+| Disabled flag, development, localhost, alternate host or HTTP | No Google tag or policy request. Inline status explains that analytics is disabled. |
 
-Some files above were already modified/untracked by the preceding consent work; this list describes the complete current reviewable working tree, not a claim that all files originated in this pass.
+Privacy choices is a regular link on every public page, including when JavaScript is disabled. Its destination is a nonmodal section in the Privacy Policy, available by keyboard. Inline buttons have equal visual treatment, visible focus and a 44px minimum height. They remain disabled without JavaScript, and no analytics runs without JavaScript. There is no automatic modal, toast, consent banner, focus movement or forced choice.
 
-## Production switch and GA4 property prerequisites
+The footer link uses ordinary full-page navigation. Open it in a separate tab if you want to retain a currently selected batch; rejection on the Privacy Policy propagates to other open tabs without reloading those tabs. Withdrawal sets Google's disable flag, clears pending initialization commands, informs a previously loaded tag of denial and deletes accessible first-party `_ga` cookies. Requests already in flight and previously sent data cannot be recalled. Reacceptance after an active tag was stopped takes effect on the next page load, avoiding another configuration/page view in that document. Focus/visibility/BFCache and a periodic check still enforce changed GPC/expiry; these are privacy rechecks, not popup handlers.
 
-Only analytics environment variable:
+The visitor does not need to opt in where the reviewed policy allows automatic collection. In consent-required regions, pre-consent landing pages remain untracked; acceptance on the Privacy Policy begins measurement there. The implementation does not invent or retrospectively replay earlier page views or preserve pre-consent browsing history.
+
+## Standard Google tag, attribution and privacy limits
+
+The shared layout loads one same-origin external initializer. After permission, it inserts one asynchronous official `gtag.js` and calls `gtag('config', 'G-W3XNRQR60H', options)` once. GA4 supplies its initial automatic page view; no manual page-view controller or history injection was added. The static multipage site creates one configuration per new permitted document. See Google's [default page-view documentation](https://developers.google.com/analytics/devguides/collection/ga4/views).
+
+The initializer still passes the canonical path with filtered `utm_source`, `utm_medium`, `utm_campaign`, `utm_id`, `utm_term` and `utm_content`, plus the HTTP(S) referring origin. Google/Bing/social/referral domains and safe campaigns remain available to GA4; direct visits keep an empty referrer. There is no blanket referral erasure or `ignore_referrer:true`. Query values must be public campaign slugs: 1–100 characters, starting with a letter/digit and containing only letters, digits, dots, underscores, tildes or hyphens. Long numeric runs and image/archive filename suffixes are excluded. Other query parameters, fragments, referrer paths and referrer queries are omitted. Filtered-out campaign formats will not be attributed from those values.
+
+Application code sends no images, filenames, EXIF, file objects, image contents, local paths, dimensions or conversion errors. There are no custom converter events. Harmless-looking campaign labels cannot be reliably classified as nonpersonal by a regex; campaign owners must never encode personal data in them. Google runs as third-party JavaScript in the page context, not a sandbox.
+
+Google Ads storage, user data and personalization remain denied. Google signals and advertising personalization flags are false, and ads data redaction remains enabled. No Ads tag is installed. Basic gating blocks Google's script until permission; it does not send advanced-mode cookieless pings before consent. Google documents the distinction in its [consent-mode overview](https://developers.google.com/tag-platform/security/concepts/consent-mode).
+
+## Environment, GA4 account and CSP
+
+Only analytics build flag:
 
 ```dotenv
 PUBLIC_GA4_ENABLED=true
 ```
 
-It is a public build-time switch, not a secret. `.env.example` defaults false. Rebuild after changing it. Even with true, development builds, localhost, IP addresses, HTTP and other hostnames cannot load this installation. The exact production origin is required. No country or event environment variables remain. Existing contact/ad settings are unrelated and may remain as configured.
+`.env.example` stays false. Rebuild to change the flag. Production requires both the build flag and the exact `https://heic2png.site` origin; a true flag does not enable localhost or Astro development. Preserve unrelated contact/ad build variables as currently configured.
 
-Before enabling, inspect this property's web stream:
+Before activation, keep Enhanced Measurement (including form/file/download/outbound/history interaction collection), automatic user-provided data, Google signals and Ads destinations off in the GA4 property. Enable available email/query data redaction as an additional safeguard. Do not add another install through GTM, Zaraz, Cloudflare apps or snippets. Dashboard settings cannot be verified from this repository; they remain operator prerequisites.
 
-1. Turn **Enhanced Measurement off** (including file downloads, form interactions, outbound clicks and history-based page views). The standard configuration still sends its initial page view; enhanced interactions could otherwise inspect DOM/file-related data or unfiltered addresses. Do not enable automatic user-provided data collection.
-2. Keep Google signals, advertising personalization and Ads destinations/linking off. The initializer also sets `ad_storage`, `ad_user_data` and `ad_personalization` to denied; `allow_google_signals` and `allow_ad_personalization_signals` are false; ads data redaction is enabled. No Ads tag is installed.
-3. Remove any additional installation in GTM, Zaraz, Cloudflare apps or other snippets for this property. The source has one installation and refuses to initialize if another `gtag`/Google tag script is already present. External dashboard injections cannot be audited from repository code alone.
-4. Enable GA4's email/query data redaction as additional protection. Use only public non-identifying campaign labels. Do not collect user IDs or add remote custom tags/events.
+**No Nginx/CSP changes are required or proposed.** The integration retains external same-origin initialization and the same Google hosts: `www.googletagmanager.com` for scripts; existing Google Analytics collection hosts for connections/images. The policy HEAD request is same-origin. Inline choices use external CSS, not inline executable JavaScript. Preserve the existing script/worker/WASM/ZIP allowances and all other security directives. No `unsafe-inline` JavaScript, broad new origins or advertising domains are needed. The browser tests use the existing GA-permissive policy with a stubbed Google script; real collection still needs post-release observation.
 
-Google's [default page-view documentation](https://developers.google.com/analytics/devguides/collection/ga4/views) explains that `config` sends a page view without a manual event. [Enhanced measurement settings](https://support.google.com/analytics/answer/9216061?hl=en) are controlled in the property, not this repository.
+## Exact manual Cloudflare policy changes
 
-## Consent behavior
+Do not change Cloudflare automatically. A global `X-Analytics-Consent: required` rule will keep new, unconsented visitors untracked; it **will no longer cause a popup**, because the popup code is removed. This is the correct safe fallback. To allow automatic tracking in an approved jurisdiction, use a narrow exception, not a global header replacement.
 
-| Situation | Behavior |
-| --- | --- |
-| Production enabled, no saved choice, trusted response header exactly `X-Analytics-Consent: not-required` | Load GA4 automatically; no banner or acceptance stored. |
-| Header `required`, absent, invalid, timed out, redirected or unsuccessful response | No Google tag, requests or Analytics cookies before Accept; show equal Accept/Reject controls. |
-| Valid saved acceptance | Load automatically; acceptance expires after 180 days. |
-| Saved rejection, including an old rejection timestamp | No GA4; remains off until explicitly changed or browser storage cleared. |
-| Global Privacy Control | No GA4 everywhere, including otherwise automatic regions and saved acceptance. Accept is disabled while GPC is active. |
-| Invalid/expired preference | Require a fresh explicit choice; never silently override it with automatic permission. |
-| Unavailable preference storage | Stay off; failed acceptance does not grant permission. Reject dismisses the panel for that document. |
-| Local/development/disabled release | No Google tag or policy request; panel only opens on deliberate settings access. |
+In the **heic2png.site zone only**, under Rules → Transform Rules → Modify Response Header:
 
-The footer's **Privacy choices** link opens the same panel on every public page. Keyboard focus enters its heading and returns to the opener; Escape dismisses without consenting. Both buttons have equal styling and 44px minimum height. No forced reload or conversion cancellation occurs.
-
-Withdrawal sets Google's documented `ga-disable-G-W3XNRQR60H` flag before notifying the loaded tag of denial, clears pending initialization commands and accessible first-party `_ga` cookies, and removes the script element. Cross-tab rejection is respected. Existing in-flight requests/data already sent cannot be recalled. If tracking has started and is then stopped, reacceptance resumes on the next navigation; the current page does not receive another configuration/page view. Focus, visibility, BFCache restoration and a one-minute check recheck GPC/expiry. BFCache restoration does not manually send a view.
-
-This implements basic consent gating: Google is not loaded while permission is unresolved. [Google distinguishes basic from advanced consent mode](https://developers.google.com/tag-platform/security/concepts/consent-mode); advanced cookieless pre-consent pings are not used here.
-
-## Manual Cloudflare response-header setup
-
-**Not configured by this task.** You confirmed there is no current provider and requested documentation for manual setup. Until this setup is reviewed and installed, unknown visitors are opt-in worldwide. No absence of choice is interpreted as permission.
-
-A static Astro build cannot know a visitor's jurisdiction. The browser makes one same-origin **HEAD** request to the current pathname, excluding query/fragment, only when there is no saved preference and no GPC. It reads a policy result, not a country/IP body. There is no diagnostic endpoint or geolocation API. The request omits credentials/referrer, bypasses browser cache, rejects redirects and times out after two seconds.
-
-In the **heic2png.site zone only**, open Rules → Transform Rules → Modify Response Header. Create these in order using **Set**, not Append:
-
-1. Default rule expression: `(http.host eq "heic2png.site")`. Set `X-Analytics-Consent` to `required`.
-2. After that rule, create a narrower exception only for jurisdictions reviewed as permitting this site's actual analytics without prior opt-in. Set the same header to `not-required`.
-
-For example, if review explicitly approves the United States for this configuration, the exception expression is:
+1. Keep the default response rule `(http.host eq "heic2png.site")` setting **one** `X-Analytics-Consent` header to `required`.
+2. After that rule, create an exception matching only a reviewed set of jurisdictions where this site's actual configuration permits analytics without prior opt-in. Use **Set**, not Append, with the same header and value `not-required`.
+3. For example, **only after review approves the US for this deployment**, the exception expression is:
 
 ```text
 (http.host eq "heic2png.site" and ip.src.country in {"US"})
 ```
 
-This is an executable rule example, **not a legal determination that all US situations are exempt**. Start with no exception if no regions have been approved. Keep EEA/UK/Switzerland and unknown countries on `required`; extend exceptions only after jurisdiction-specific review, including applicable state/privacy/minor requirements. Country-only policy is coarse: where finer rules are needed, retain opt-in or use an appropriate CMP. Browser language/timezone and campaign parameters never grant permission. GPC and saved opt-outs always override the header.
+This is a rule example, not a determination that every US situation is exempt. With no approved jurisdictions, leave the default rule alone. Keep consent-required and unknown regions on `required`; do not blanket-allow the world outside Europe. Country-level policy is coarse: use opt-in wherever state, age, purpose or other requirements cannot be resolved adequately. GPC and explicit opt-outs override every region.
 
-Apply the transform to all responses, including HEAD and cache hits, on this hostname. Do not bake the value into static HTML, origin-wide headers or an HTML cache variant. Use a response transform that evaluates the current visitor on every response. Cloudflare documents that [response header transforms use visitor `ip.src.country` and run after cache evaluation](https://developers.cloudflare.com/rules/transform/response-header-modification/). No origin country database, new endpoint, Worker, Nginx reload or CORS change is needed.
+Apply response transforms per visitor to HEAD and normal responses, including cache hits. Do not bake regional permission into static HTML or a shared cached body. Cloudflare's [response-header documentation](https://developers.cloudflare.com/rules/transform/response-header-modification/) explains visitor-country evaluation. The browser reads only this policy header through a same-origin HEAD to the current pathname, omitting query, fragment, credentials and referrer; it rejects redirects and times out after two seconds. No country/IP diagnostic body or third-party geolocation service is involved.
 
-Validate from an approved region and a consent-required region using actual remote locations/VPNs and clean browser storage. `curl -I https://heic2png.site/` and DevTools' HEAD response must show the appropriate **single** header. Spoofing a request header is not a jurisdiction test. Test with a warm Cloudflare cache in both regions. Missing/failed policy always falls back to opt-in. No changes to the TikSaveMP4 zone are needed.
+Validate with clean storage from actual eligible and consent-required locations, including warm cache hits. Check the HEAD response's single header. A spoofed browser request header does not prove geographic behavior. No live Cloudflare dashboard rules were inspected or altered here.
 
-## Attribution and data boundaries
+## Verification results
 
-The configuration keeps the canonical page path and these landing parameters when they pass filtering: `utm_source`, `utm_medium`, `utm_campaign`, `utm_id`, `utm_term`, `utm_content`. Labels must start with a letter or digit, contain only letters, digits, dots, underscores, tildes or hyphens, and be at most 100 characters. Long numeric runs and image/archive filename suffixes are rejected. Other query parameters and all fragments are omitted. Public campaign labels with spaces or characters outside this allowlist are intentionally dropped; use safe slugs such as `autumn-2026`.
+| Check | Result |
+| --- | --- |
+| `npm run check` | Passed application and worker TypeScript checks. |
+| `npm run build` | Passed; generated 19 HTML documents. The normal build retains the disabled-by-default analytics flag. |
+| `npm run validate:release` | Passed 18 canonical sitemap pages, assets/worker/WASM and the new no-popup/privacy-link checks. |
+| `npx playwright test --reporter=list` | **58/58 passed in 2.6 minutes**, including all 14 analytics scenarios, actual PNG/JPG/AVIF conversions, single/ZIP downloads, failures, queue behavior, mobile widths, themes, links, metadata and structured data. |
+| Additional generated-HTML inspection | All 19 documents (including 404) have no popup, exactly one normal Privacy choices footer link, no popup-specific footer attributes, and inline controls only on `/privacy/`. |
+| Visual inspection | Inline controls were checked in the generated dark mobile Privacy screenshot; light/dark button sizing and keyboard operation were tested. |
+| `node --check public/analytics.js`, `git diff --check` | Passed. Git's LF/CRLF notices are informational. |
+| Real GA4 Realtime, Tag Assistant and actual regional Cloudflare policy | Not observed or changed; follow the manual verification below. |
 
-The referrer retains its HTTP(S) **origin**, allowing search-engine, social and referring-site distinction without sending its path/query. Direct visits retain an empty referrer. There is no `ignore_referrer:true` or blanket referral erasure. No client code sets an organic/direct classification; GA4 performs attribution from the available data. Google Ads click IDs are not forwarded as landing parameters. Ad blockers, browser referrer policies, consent delays and GA processing can still affect attribution; do not promise perfect channel reporting.
-
-Only static page metadata and filtered URLs are supplied. No converter events, filenames, file objects, image data, EXIF, private file paths, dimensions or raw conversion errors are sent by application code. The Google tag runs in the page context, not a sandbox. Filtering cannot identify every possible personal name disguised as a harmless campaign slug; campaign owners must not put PII in labels. The GA property settings above are a release prerequisite. Local tests inspect supplied configuration; they do not prove every internal behavior of Google's remotely maintained script.
-
-## Existing CSP
-
-A read-only HTTPS HEAD request on October 24, 2026 (local date) returned HTTP 200 and this existing live policy:
-
-```text
-default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://www.googletagmanager.com https://*.google-analytics.com; font-src 'self'; connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'
-```
-
-**Required Nginx/CSP changes: none.** The initializer is same-origin external JS, the tag host is already allowed by `script-src`, and Google collection hosts are allowed by `connect-src`/`img-src`. There is no inline executable GA code, eval, nonce requirement, wildcard expansion or advertising-domain addition. The same-origin policy HEAD request uses existing `connect-src 'self'`. Preserve existing worker/blob/WASM allowances. Repository Nginx proposal files are not an instruction to replace the already reviewed live policy.
-
-The production-origin browser tests use this policy with a stub tag. Live Google collection and browser enforcement after deployment still need manual verification. Tag Assistant debugging may involve additional debug UI resources; do not weaken production CSP just to load debug tools.
-
-## Validation record
-
-Results are recorded below after the final build. All Google traffic in automated tests is intercepted; no test sends to the live property. A mocked default-config page view is a configuration assertion, not a Google Realtime result.
+Google requests were stubbed throughout automated testing. The mock records one default-config page view; it does not establish real Google receipt. The existing outdated Browserslist-data warning did not fail the build. No dependencies were changed. Physical iOS/Android and browser-specific memory limits still need real-device testing.
 
 ## Exact manual VPS release commands
 
@@ -161,50 +149,15 @@ curl --fail --silent --show-error --head https://heic2png.site/
 
 Preserve established contact/ad build environment settings. Do not copy `.env` to the release. If tests cannot run on the VPS, stage only an artifact already tested from this exact commit and production environment in CI; record the skipped VPS checks accurately. The switch requires no Nginx reload. Verify the new fingerprinted initializer is served (Cloudflare may retain old HTML); if a purge is necessary, scope it to reviewed HEIC URLs only. Do not enable the tag until GA property prerequisites are satisfied. Header setup is a separately reviewed manual Cloudflare action above, not part of this command block. Rollback commands that preserve cached assets are in the deployment guide.
 
-## Tag Assistant and Realtime procedure — manual after release
 
-1. Verify the production build has one initializer with `data-enabled="true"`; search Network for one `gtag/js?id=G-W3XNRQR60H`. Ensure no extra Zaraz/GTM installation. Check Console for CSP issues.
-2. In a clean browser from a consent-required/unknown region, verify **no Google tag/collect requests or `_ga` cookies** before Accept, after Reject, or with GPC. Confirm converters still work. Confirm Privacy choices can reopen and withdraw without losing selected files. Reload and test saved rejection.
-3. From a reviewed automatic region with the response-header rule active, verify the HEAD result is `not-required`, no banner appears, and GA loads without visiting Privacy. Repeat with GPC and saved rejection: both must keep GA off. Check a cache hit and a consent-required-region visit.
-4. Accept where needed and use DevTools Network to observe the real `g/collect` request for `tid=G-W3XNRQR60H` and `en=page_view`. Check one initial view per document, no duplicate after clicking Accept again, and one on full navigation. Inspect decoded `dl`/`dr` for safe UTM values and referring origin; do not use PII as test data. Test with ad blockers disabled only in the test profile.
-5. Visit `https://heic2png.site/?utm_source=qa&utm_medium=test&utm_campaign=ga4-check` and a second page. Connect [Tag Assistant](https://tagassistant.google.com/) when available under existing CSP and confirm one destination/configuration. Use [GA4 Realtime](https://support.google.com/analytics/answer/9271392?hl=en) for the property and check the real page view. Traffic acquisition reports can take longer; Realtime alone is not proof of all channel classifications. Test real search/social/referral journeys separately.
-6. Withdraw, inspect the disable flag and cleared accessible `_ga` cookies, then navigate: no further analytics requests should originate from the new document. Already in-flight requests are not recallable. Test PNG, JPG, AVIF and ZIP again on production, including mobile devices.
+## Manual post-release verification
 
-**Google Analytics Realtime, Tag Assistant, the manual Cloudflare rule and real regional journeys were not observed or configured by this task.**
+1. Confirm the new HTML loads one fingerprinted initializer, no old popup markup/CSS and no extra GTM/Zaraz installation. Confirm the build's `data-enabled="true"` and inspect Console for CSP errors.
+2. In a fresh consent-required or unknown region, open the converter. No popup, Google script, collect request or `_ga` cookie should appear. PNG/JPG/AVIF conversion and ZIP should still work. Follow the footer link; Accept and Reject must be inline on Privacy. Accept starts measurement only then; Reject remains off after reload/navigation.
+3. In a reviewed automatic region, verify the HEAD response says `not-required`: the current page should initialize GA4 immediately without a Privacy visit or user action. Repeat with saved rejection and GPC; both must prevent collection.
+4. In DevTools Network, observe real `g/collect` traffic with `tid=G-W3XNRQR60H` and `en=page_view`. Confirm one initial view per permitted document and none from repeated Accept. Check decoded `dl`/`dr` for safe campaign labels and referring origin. Use synthetic public labels, never PII.
+5. Visit `https://heic2png.site/?utm_source=qa&utm_medium=test&utm_campaign=ga4-check`, navigate once, and inspect the correct property in [GA4 Realtime](https://support.google.com/analytics/answer/9271392?hl=en). Optionally connect [Tag Assistant](https://tagassistant.google.com/) under the existing CSP. Do not weaken CSP for debug tooling. Traffic acquisition reports may take longer than Realtime; test real Google/Bing/social/referral journeys separately.
+6. Keep a converter tab with selected files open, reject analytics from Privacy in another tab and confirm the original tab disables collection while retaining its files. Check accessible `_ga` cookies are cleared. Reacceptance after stopping the tag resumes on the next page load. Previously sent/in-flight data cannot be recalled.
+7. Check mobile Privacy controls in light/dark modes and converters/downloads on actual iOS/Android devices. Local automated browser execution does not substitute for physical-device testing.
 
-## Additional requested mobile file-list change
-
-The later mobile request authorizes the compact queue shown in the supplied examples. `src/design/helpers.js`, `src/lib/design.mjs`, `src/styles/approved.css` and `tests/mobile-ui.spec.ts` now provide:
-
-- One mobile row per file, with an actual asynchronously decoded thumbnail, truncated filename, size, status and 44px remove control.
-- A simple file count and Clear All; redundant dimensions/output-name/color-space details are hidden on mobile.
-- Ready before conversion, Queued while another file is converting, and Converting with an indeterminate progress bar. The encoder exposes no percentage callbacks; no time-based or fabricated percentages are shown.
-- A labeled download icon for each completed row. Global conversion/download/ZIP controls and the sequential conversion algorithms remain unchanged.
-- Existing desktop row appearance and controls retained; filename tooltips and detailed error text retained.
-
-The mobile regression uploads six actual HEIC files, verifies all real thumbnails, inspects queued/converting states while delaying actual worker startup, removes a waiting file during conversion and downloads a completed AVIF. Screenshots are generated at `test-results/mobile-queue-ready.png` and `test-results/mobile-queue-converting.png` and were visually inspected. These are local test artifacts, not uploaded production assets.
-
-`scripts/validate-release.mjs` also now checks for exactly one external analytics initializer and no eagerly embedded Google script or obsolete regional/event attributes on every sitemap page.
-
-The subsequent Output Defaults request is implemented only below 768px: Output Defaults is followed by the format badge on its own full-width row, then Advanced Settings is a full-width 44px control. The resolution and quality badges are hidden on mobile as subsequently requested; the actual resize settings and desktop badge are preserved. Padding and gaps are reduced to keep the panel at most 180px high at tested mobile widths. Values wrap within their cells. The expanded settings controls and all conversion options remain unchanged. `tests/mobile-ui.spec.ts` checks this arrangement at 320, 390 and 767px on PNG/JPG/AVIF and produces `mobile-output-defaults-{png,jpg,avif}.png` screenshots.
-
-### Recorded results
-
-The broad suite passed before the last mobile-panel refinements; the affected mobile scenarios were rerun afterward.
-
-| Check | Observed result |
-| --- | --- |
-| `npm run check` | Passed TypeScript app and worker checks after final source edits. |
-| `npm run build` | Passed; 19 HTML pages generated, including 404. Both an explicitly GA-enabled production build and the normal disabled-default build were exercised. |
-| Full Playwright regression suite on the enabled build | 55/55 passed in 3.3 minutes; includes actual PNG/JPG/AVIF conversions, ZIPs, errors, thumbnails, mobile widths, metadata, links, schema and themes. |
-| Latest analytics initializer including numeric/date-prefixed UTM labels | All 13 analytics cases passed; actual Google requests were stubbed. |
-| Compact queue and lowered-panel targeted checks | 2/2 passed, including six real previews, conversion/queued states, waiting-file removal and row download. |
-| Final mobile resolution-badge removal | 1/1 passed across PNG/JPG/AVIF at 320, 390 and 767px; screenshots visually checked. |
-| `npm run test:sitemap-build` | 1/1 passed with isolated published/draft/noindex builds. |
-| `npm run validate:release` | Passed after the final build: 18 canonical sitemap pages, icons, converter worker/WASM and one analytics initializer per page. |
-| Generated HTML inspection | All 19 HTML documents had one initializer, one consent panel and one footer settings link; the normal build's activation flag was false. |
-| `node --check public/analytics.js`, `git diff --check` | Passed. Git prints informational LF/CRLF conversion notices. |
-| Existing public HTTPS/CSP | Read-only HEAD returned 200; Google script/collection endpoints are already allowed. No infrastructure change required. |
-| Real regional policy, Tag Assistant and GA4 Realtime | Not verified; manual Cloudflare configuration and production observation remain required. |
-
-The build reports an existing outdated Browserslist data warning; it does not fail. No dependency versions or lockfile were changed. Automated browser execution used installed desktop Chrome, not physical iOS/Android devices; physical-device memory and browser-specific behavior remain manual checks.
+Realtime, Tag Assistant, actual regional header rules and real traffic-source classification have not been observed by this task. Do not label them verified until the operator performs these checks after a separately authorized release.

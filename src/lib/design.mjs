@@ -153,7 +153,7 @@ export function renderDesign(path, entries=[], {contactEmail='backbencherz@gmail
  const privacyLink=document.querySelector('footer a[href="/privacy"]');
  if(privacyLink){
    const item=document.createElement('li');
-   item.innerHTML='<a href="/privacy/#analytics-preferences" data-analytics-settings aria-controls="analytics-consent" aria-expanded="false">Privacy choices</a>';
+   item.innerHTML='<a href="/privacy/#analytics-preferences">Privacy choices</a>';
    privacyLink.closest('ul').append(item);
  }
  for(const span of document.querySelectorAll('#content-home-png span')){

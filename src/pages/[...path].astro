@@ -5,10 +5,10 @@ import {canonicalPageUrl} from '../lib/urls.mjs';
 import {pagePaths} from '../lib/page-routes.mjs';
 import {createStructuredData,serializeStructuredData} from '../lib/structured-data.mjs';
 import AdSlot from '../components/AdSlot.astro';
-import AnalyticsConsent from '../components/AnalyticsConsent.astro';
 import '../generated/styles.css';
 import '../styles/approved.css';
 import '../styles/theme.css';
+import '../styles/privacy-choices.css';
 import fontFaces from '../../public/fonts/fonts.css?raw';
 import themeUrl from '../../public/theme.js?url&no-inline';
 import analyticsUrl from '../../public/analytics.js?url&no-inline';
@@ -97,7 +97,6 @@ const schema=createStructuredData({path,title,description,entry,noindex});
   {parts.map((part,i)=>i%2?<AdSlot html={part}/>:<Fragment set:html={part}/>)}
   {Content&&<Content />}
   <Fragment set:html={after} />
-  <AnalyticsConsent />
   <script src="../generated/client.ts"></script>
  </body>
 </html>
