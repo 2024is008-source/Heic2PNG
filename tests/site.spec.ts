@@ -114,3 +114,35 @@ test('both ZIP actions stay disabled until every selected image has converted su
  await page.getByRole('button',{name:'Remove broken.heic',exact:true}).click();
  for(const button of await zipButtons.all())await expect(button).toBeEnabled();
 });
+
+test('completed filenames use the output extension and a single-file banner downloads the image',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ const bytes=await fs.readFile(fixture);
+ for(const [route,format]of [['/','png'],['/heic-to-jpg/','jpg'],['/heic-to-avif/','avif']]){
+  await page.setViewportSize({width:390,height:844});await page.goto(route);
+  const name=format==='png'?'photo & <draft>.heic':'example.heic',output=format==='png'?'photo & _draft_.png':'example.'+format;
+  await page.locator('#real-file-input').setInputFiles({name,mimeType:'image/heic',buffer:bytes});
+  const row=page.locator('.file-row-item');await expect(row.locator('.file-input-name')).toHaveText(name);await expect(page.locator('#btn-download-zip')).toBeHidden();
+  await convert(page);await expect(row.locator('.file-input-name')).toHaveText(output);await expect(row.locator('.file-input-name')).toHaveAttribute('title',output);await expect(row.locator('.file-output-name')).toHaveCount(0);
+  await expect(row.locator('img')).toHaveAttribute('alt','Thumbnail for '+output);
+  for(const width of [320,375,390,844]){
+   await page.setViewportSize({width,height:844});
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   const {nameBox,extensionBox}=await row.evaluate(e=>{const rect=(selector)=>{const r=e.querySelector(selector).getBoundingClientRect();return {x:r.x,width:r.width};};return {nameBox:rect('.file-input-name'),extensionBox:rect('.file-name-extension')};});
+   await expect(row.locator('.file-name-extension')).toHaveText('.'+format);expect(extensionBox!.width).toBeGreaterThan(0);expect(extensionBox!.x+extensionBox!.width).toBeLessThanOrEqual(nameBox!.x+nameBox!.width+1);
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  }
+  await page.setViewportSize({width:390,height:844});
+  const banner=page.locator('#converter-success-banner');await expect(banner.getByRole('button',{name:'Download '+format.toUpperCase(),exact:true})).toBeEnabled();await expect(banner).not.toContainText('ZIP');
+  const downloading=page.waitForEvent('download');await page.locator('#btn-zip-banner-text').click();const result=await downloading;expect(result.suggestedFilename()).toBe(output);
+  const converted=await fs.readFile((await result.path())!);
+  if(format==='png')expect(converted.subarray(1,4).toString()).toBe('PNG');else if(format==='jpg')expect([...converted.subarray(0,2)]).toEqual([255,216]);else expect(converted.subarray(4,12).toString()).toBe('ftypavif');
+  await page.locator('#file-list-section').screenshot({path:'test-results/single-output-'+format+'-mobile.png'});
+  await page.setViewportSize({width:1440,height:1000});await expect(row.locator('.file-input-name')).toHaveText(output);await expect(banner.getByRole('button',{name:'Download '+format.toUpperCase(),exact:true})).toBeVisible();
+  if(format==='png')await page.locator('.converter-card-body').screenshot({path:'test-results/single-output-desktop.png'});
+  await page.locator('#real-file-input').setInputFiles(fixture);await expect(page.locator('.file-row-item')).toHaveCount(2);await expect(page.locator('#btn-download-zip')).toBeVisible();
+  await expect(banner.getByRole('button',{name:'Download All as ZIP',exact:true})).toBeDisabled();
+  await convert(page);await expect(banner.getByRole('button',{name:'Download All as ZIP',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'Remove example.heic',exact:true}).last().click();await expect(page.locator('.file-row-item')).toHaveCount(1);await expect(page.locator('#btn-download-zip')).toBeHidden();await expect(banner.getByRole('button',{name:'Download '+format.toUpperCase(),exact:true})).toBeEnabled();
+ }
+});

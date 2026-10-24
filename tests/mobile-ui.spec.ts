@@ -46,7 +46,7 @@ test('long-name upload rows keep thumbnails, metadata and tap targets usable on 
     expect(boxes.actions.x).toBeGreaterThanOrEqual(boxes.info.right);expect(boxes.name.height).toBeLessThan(30);expect(boxes.row.height).toBeLessThanOrEqual(80);
     for(const button of boxes.buttons.filter(b=>b.width>0)){expect(button.height).toBeGreaterThanOrEqual(44);expect(button.width).toBeGreaterThanOrEqual(44);}
     for(const tab of await page.locator('.converter-format-tabs [role="tab"]').all())expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    for(const control of await page.locator('.converter-action-bar button,#btn-toggle-advanced').all())expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    for(const control of await page.locator('.converter-action-bar button:visible,#btn-toggle-advanced').all())expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
    }
    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }

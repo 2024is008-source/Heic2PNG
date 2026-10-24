@@ -60,6 +60,12 @@ function refresh(){
  }
  $('btn-primary-convert').disabled=busy||!fileQueue.length;
  $('btn-download-single').disabled=!done.length;
+ const single=fileQueue.length===1;
+ const bannerLabel=$('btn-zip-banner-text'),bannerDownload=bannerLabel.closest('button');
+ bannerLabel.textContent=single?'Download '+currentFormat:'Download All as ZIP';
+ bannerDownload.dataset.onclick=single?'downloadFirstCompleted()':'downloadAllAsZip()';
+ bannerDownload.disabled=single?busy||!done.length:!canDownloadAll();
+ $('btn-download-zip').classList.toggle('hidden',single);
  for(const button of document.querySelectorAll('[data-onclick^="downloadAllAsZip"]')) button.disabled=!canDownloadAll();
  for(const el of document.querySelectorAll('#advanced-settings-panel input, #resize-mode-select, #jpg-quality-slider, #avif-quality-slider, #avif-subsampling')) if(!['chk-strip-exif','chk-color-srgb'].includes(el.id)) el.disabled=busy||(el.id==='avif-quality-slider'&&$('avif-subsampling').value==='lossless');
  for(const el of document.querySelectorAll('[data-onclick^="convertSingleFile"]')) el.disabled=busy;
@@ -141,7 +147,7 @@ function save(blob,name){const url=URL.createObjectURL(blob);const a=document.cr
 function downloadConvertedFile(id){const item=fileQueue.find(x=>x.id===id);if(item?.blob){save(item.blob,getOutputFilename(item.name));}}
 function downloadFirstCompleted(){const item=fileQueue.find(x=>x.blob);if(item)downloadConvertedFile(item.id);else showToast('Convert a file before downloading.');}
 let zipping=false;
-function canDownloadAll(){return !busy&&!zipping&&fileQueue.length>0&&fileQueue.every(item=>item.status==='completed'&&item.blob);}
+function canDownloadAll(){return !busy&&!zipping&&fileQueue.length>1&&fileQueue.every(item=>item.status==='completed'&&item.blob);}
 async function downloadAllAsZip(){
  if(!canDownloadAll())return;
  const items=[...fileQueue];

@@ -22,7 +22,11 @@ var currentFormat = "PNG", jpgQuality = 85, avifQuality = 78, toastTimeout = nul
       for (var j = 0; j < fileQueue.length; j++) {
         var item = fileQueue[j];
         var thumbSrc = getThumbnailSvgDataUri(item.theme);
-        var outName = getOutputFilename(item.name);
+        // Compute from the original filename, then escape for HTML display.
+        var outName = escapeHtml(getOutputFilename(item['name']));
+        var displayName = item.status === 'completed' ? outName : item.name;
+        var outputExtension = '.' + currentFormat.toLowerCase();
+        var displayMarkup = item.status === 'completed' ? '<span class="file-name-stem">' + displayName.slice(0, -outputExtension.length) + '</span><span class="file-name-extension">' + outputExtension + '</span>' : displayName;
         var outSize = calculateEstimatedOutputSize(item.inputSizeMB);
 
         var statusBadge = '';
@@ -53,11 +57,11 @@ var currentFormat = "PNG", jpgQuality = 85, avifQuality = 78, toastTimeout = nul
         var mobileProgress = item.status === 'converting' ? '<span class="file-mobile-progress" role="progressbar" aria-label="Converting image"><span></span></span>' : '';
         html += '<div data-status="' + item.status + '" class="file-row-item rounded-2xl border border-[#E2E8F0] bg-white p-3.5 flex items-center justify-between gap-4 hover:border-indigo-200 transition-soft">' +
           '<div class="file-row-info flex items-center gap-3.5 min-w-0 flex-1">' +
-            '<img src="' + thumbSrc + '" alt="Thumbnail for ' + item.name + '" class="file-row-thumbnail w-14 h-11 rounded-xl object-cover border border-slate-200 shrink-0" />' +
+            '<img src="' + thumbSrc + '" alt="Thumbnail for ' + displayName + '" class="file-row-thumbnail w-14 h-11 rounded-xl object-cover border border-slate-200 shrink-0" />' +
             '<div class="file-row-details min-w-0 flex-1">' +
               '<div class="file-row-names flex flex-wrap items-center gap-2">' +
-                '<span title="' + item.name + '" class="file-input-name text-xs sm:text-sm font-bold text-[#0F172A] truncate">' + item.name + '</span>' +
-                '<span title="' + outName + '" class="file-output-name text-[11px] font-mono text-[#64748B]">→ ' + outName + '</span>' +
+                '<span title="' + displayName + '" class="file-input-name ' + (item.status === 'completed' ? 'file-converted-name ' : '') + 'text-xs sm:text-sm font-bold text-[#0F172A] truncate">' + displayMarkup + '</span>' +
+                (item.status === 'completed' ? '' : '<span title="' + outName + '" class="file-output-name text-[11px] font-mono text-[#64748B]">→ ' + outName + '</span>') +
               '</div>' +
               '<div class="file-row-meta flex flex-wrap items-center gap-2 text-[11px] text-[#64748B] mt-0.5">' +
                 '<span>' + item.inputSizeMB.toFixed(1) + ' MB</span>' +
