@@ -4,7 +4,7 @@ import path from 'node:path';
 const origin='https://heic2png.site', key='heic2png-analytics-consent-v1', id='G-W3XNRQR60H';
 const csp="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.googletagmanager.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://www.googletagmanager.com https://*.google-analytics.com; font-src 'self'; connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'none'";
 // Production bytes under the production origin. Google is stubbed, never contacted.
-async function production(page:Page,{enabled=true,blocked=false}:{enabled?:boolean;blocked?:boolean}={}) {
+async function production(page:Page,{enabled=true,blocked=false,policy='not-required',delay=0,headStatus=200}:{enabled?:boolean;blocked?:boolean;policy?:string|null;delay?:number;headStatus?:number}={}) {
  const requests:string[]=[], heads:string[]=[];
  await page.context().route('https://www.googletagmanager.com/**',async route=>{
   requests.push(route.request().url());if(blocked)return route.abort();
@@ -15,7 +15,8 @@ async function production(page:Page,{enabled=true,blocked=false}:{enabled?:boole
   const url=new URL(route.request().url());
   if(route.request().method()==='HEAD'){
    heads.push(route.request().url());
-   return route.fulfill({status:200,headers:{'X-Analytics-Consent':'required'},body:''}).catch(()=>{});
+   if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+   return route.fulfill({status:headStatus,headers:policy?{'X-Analytics-Consent':policy}:{},body:''}).catch(()=>{});
   }
   let target=path.join('dist',decodeURIComponent(url.pathname)),status=200;
   try{if((await fs.stat(target)).isDirectory())target=path.join(target,'index.html');}catch{target='dist/404.html';status=404;}
@@ -30,18 +31,26 @@ async function calls(page:Page){return page.evaluate(()=>(window as any).__gaCal
 async function oneView(page:Page){await expect.poll(()=>page.evaluate(()=>(window as any).__automaticViews?.length||0)).toBe(1);}
 async function noPopup(page:Page){await expect(page.locator('#analytics-consent,[role="dialog"],[role="alertdialog"]')).toHaveCount(0);}
 
-test('fresh production visits start automatically without Accept, a policy lookup or invented consent',async({page})=>{
+test('eligible production visits initialize once after a policy decision without invented consent',async({page})=>{
  const {requests,heads}=await production(page);await page.goto(origin+'/?email=PRIVATE_TEST#PRIVATE_TEST');await oneView(page);await noPopup(page);
- expect(heads).toEqual([]);expect(requests).toHaveLength(1);expect(await page.evaluate(key=>localStorage.getItem(key),key)).toBeNull();
+ expect(heads).toEqual([origin+'/']);expect(requests).toHaveLength(1);expect(await page.evaluate(key=>localStorage.getItem(key),key)).toBeNull();
  const sent=await calls(page);expect(sent.filter(c=>c[0]==='config')).toHaveLength(1);expect(sent.filter(c=>c[0]==='event')).toEqual([]);
  expect(sent.find(c=>c[0]==='config')[2]).toMatchObject({page_location:origin+'/',allow_google_signals:false,allow_ad_personalization_signals:false});expect(sent.find(c=>c[0]==='config')[2]).not.toHaveProperty('send_page_view');expect(sent.find(c=>c[0]==='config')[2]).not.toHaveProperty('ignore_referrer');
- expect(sent.find(c=>c[0]==='consent')[2]).toEqual({analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});expect(JSON.stringify(sent)).not.toContain('PRIVATE_TEST');
+ expect(sent.find(c=>c[0]==='consent'&&c[1]==='default')[2]).toEqual({analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});expect(sent.find(c=>c[0]==='consent'&&c[1]==='update')[2]).toEqual({analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});expect(JSON.stringify(sent)).not.toContain('PRIVATE_TEST');
  await page.evaluate(()=>{const s=document.createElement('script');s.src='/analytics.js';s.dataset.enabled='true';document.head.append(s);});await expect(page.locator('#heic-ga4-tag')).toHaveCount(1);expect(requests).toHaveLength(1);
  await page.goto(origin+'/heic-to-jpg/');await oneView(page);await page.reload();await oneView(page);
 });
 
+test('permission requests stay on the production origin even for double-slash paths',async({page})=>{
+ const foreign:string[]=[];await page.context().route('https://policy.invalid/**',route=>{foreign.push(route.request().url());return route.abort();});
+ const {heads,requests}=await production(page,{policy:'required'});
+ await page.goto(origin+'//policy.invalid/private.heic?filename=PRIVATE_TEST#PRIVATE_TEST');
+ await expect.poll(()=>heads).toEqual([origin+'//policy.invalid/private.heic']);
+ expect(foreign).toEqual([]);expect(requests).toEqual([]);await expect(page.locator('#heic-ga4-tag')).toHaveCount(0);
+});
+
 test('first mobile visits start immediately without opening Privacy',async({page})=>{
- await page.setViewportSize({width:390,height:844});const {requests,heads}=await production(page);await page.goto(origin+'/heic-to-avif/');await oneView(page);await noPopup(page);expect(requests).toHaveLength(1);expect(heads).toEqual([]);await expect(page.locator('#analytics-choices')).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});const {requests,heads}=await production(page);await page.goto(origin+'/heic-to-avif/');await oneView(page);await noPopup(page);expect(requests).toHaveLength(1);expect(heads).toEqual([origin+'/heic-to-avif/']);await expect(page.locator('#analytics-choices')).toHaveCount(0);
 });
 
 test('search, social and referral origins and safe campaign attribution are preserved',async({browser})=>{
@@ -58,24 +67,27 @@ test('direct visits remain direct and unsafe campaign values stay excluded',asyn
 });
 
 test('saved opt-outs, corrupt records, unavailable storage and GPC still block tracking',async({browser})=>{
- for(const scenario of ['denied','old-denied','invalid','null','blocked','gpc']){
+ for(const scenario of ['denied','old-denied','invalid','null','blocked','gpc','dnt','ga-optout']){
   const context=await browser.newContext();const page=await context.newPage();const {requests,heads}=await production(page);
   await page.addInitScript(({scenario,key})=>{
    if(scenario==='gpc')Object.defineProperty(navigator,'globalPrivacyControl',{value:true});
+   else if(scenario==='ga-optout')(window as any)['ga-disable-G-W3XNRQR60H']=true;
+   else if(scenario==='dnt')Object.defineProperty(navigator,'doNotTrack',{value:'1'});
    else if(scenario==='blocked')Object.defineProperty(window,'localStorage',{get(){throw new Error('blocked');}});
    else localStorage.setItem(key,scenario==='invalid'?'invalid':scenario==='null'?'null':JSON.stringify({version:1,value:'denied',expires:Date.now()+(scenario==='denied'?86400000:-86400000)}));
   },{scenario,key});
   await page.goto(origin+'/');await noPopup(page);expect(requests).toEqual([]);expect(heads).toEqual([]);
   await page.getByRole('link',{name:'Privacy choices',exact:true}).click();await expect(page.locator('#analytics-choices')).toBeVisible();expect(requests).toEqual([]);
   if(scenario==='blocked'){await page.getByRole('button',{name:'Turn on analytics',exact:true}).click();await expect(page.locator('#analytics-status')).toContainText('could not save');expect(requests).toEqual([]);}
-  if(scenario==='gpc')await expect(page.getByRole('button',{name:'Turn on analytics',exact:true})).toBeDisabled();await context.close();
+  if(['gpc','dnt','ga-optout'].includes(scenario))await expect(page.getByRole('button',{name:'Turn on analytics',exact:true})).toBeDisabled();await context.close();
  }
 });
 
-test('an expired historical acceptance does not reintroduce an opt-in requirement',async({page})=>{
- await production(page);await page.addInitScript(key=>localStorage.setItem(key,JSON.stringify({version:1,value:'granted',expires:Date.now()-86400000})),key);await page.goto(origin+'/');await oneView(page);
+test('expired acceptance stays off until renewed and is never treated as fresh consent',async({page})=>{
+ const {requests,heads}=await production(page);await page.addInitScript(key=>{if(localStorage.getItem(key)===null)localStorage.setItem(key,JSON.stringify({version:1,value:'granted',expires:Date.now()-86400000}));},key);
+ await page.goto(origin+'/');expect(requests).toEqual([]);expect(heads).toEqual([]);
+ await page.getByRole('link',{name:'Privacy choices',exact:true}).click();await page.getByRole('button',{name:'Turn on analytics',exact:true}).click();await oneView(page);
 });
-
 test('privacy-page opt-out stops other tabs and clears cookies without changing selected files',async({page,context})=>{
  await production(page);await page.goto(origin+'/');await oneView(page);await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');
  const privacy=await context.newPage();await privacy.goto(origin+'/privacy/');await oneView(privacy);
@@ -123,7 +135,8 @@ test('real PNG JPG AVIF batch conversions, single/ZIP downloads and errors send 
    else if(format==='jpg')expect([...bytes.subarray(0,2)]).toEqual([255,216]);
    else expect(bytes.subarray(4,12).toString()).toBe('ftypavif');
   }
-  expect((await calls(page)).filter(c=>c[0]==='event')).toEqual([]);expect(JSON.stringify(await calls(page))).not.toContain('example.heic');
+  await expect.poll(async()=>(await calls(page)).filter(c=>c[0]==='event').length).toBe(2);
+  expect((await calls(page)).filter(c=>c[0]==='event').map(c=>[c[1],c[2].output_format,c[2].download_type])).toEqual([['file_download',format,'single'],['zip_download',format,'zip']]);expect(JSON.stringify(await calls(page))).not.toContain('example.heic');
  }
  await page.getByRole('button',{name:'Clear Files',exact:true}).click();
  await page.locator('#real-file-input').setInputFiles({name:'PRIVATE_FAILURE.heic',mimeType:'image/heic',buffer:Buffer.from([0,0,0,24,...Buffer.from('ftypheic'),0,0,0,0,...Buffer.from('heicmif1')])});
@@ -142,4 +155,88 @@ test('BFCache rechecks permission without manual views; a newly enabled GPC stop
  const updates=(await calls(page)).filter(c=>c[0]==='consent'&&c[1]==='update').length;
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
  expect((await calls(page)).filter(c=>c[0]==='consent'&&c[1]==='update')).toHaveLength(updates);
+});
+
+test('consent-required visits make no Google requests or cookies before an explicit choice',async({page})=>{
+ const {requests}=await production(page,{policy:'required'});
+ await page.goto(origin+'/?utm_source=qa&utm_medium=test');await noPopup(page);expect(requests).toEqual([]);expect(await page.evaluate(()=>Boolean((window as any).dataLayer))).toBe(false);expect(await page.context().cookies()).toEqual([]);
+ await page.getByRole('link',{name:'Privacy choices',exact:true}).click();await expect(page.locator('#analytics-choices')).toBeVisible();expect(requests).toEqual([]);
+ await page.getByRole('button',{name:'Turn on analytics',exact:true}).click();await oneView(page);await page.getByRole('button',{name:'Turn on analytics',exact:true}).click();await oneView(page);expect(requests).toHaveLength(1);
+ await page.goto(origin+'/heic-to-jpg/');await oneView(page);
+});
+
+test('missing, malformed, failed, redirected and timed-out policy results do not imply permission',async({browser})=>{
+ for(const options of [{policy:null},{policy:'unknown'},{headStatus:503},{headStatus:302},{delay:3000}]){
+  const context=await browser.newContext();const page=await context.newPage();const {requests,heads}=await production(page,options);
+  await page.goto(origin+'/?consent=not-required');await expect.poll(()=>heads.length).toBe(1);if(options.delay)await page.waitForTimeout(2200);
+  await noPopup(page);expect(requests).toEqual([]);expect(await page.context().cookies()).toEqual([]);await expect(page.locator('#upload-dropzone')).toBeVisible();await context.close();
+ }
+});
+
+test('rejection while policy resolution is pending wins even if saving the preference fails',async({page})=>{
+ const {requests}=await production(page,{delay:700});await page.addInitScript(()=>{Storage.prototype.setItem=function(){throw new Error('read-only preferences');};});
+ await page.goto(origin+'/privacy/');await page.getByRole('button',{name:'Turn off analytics',exact:true}).click();await expect(page.locator('#analytics-status')).toContainText('could not save');await page.waitForTimeout(850);expect(requests).toEqual([]);
+});
+
+async function events(page:Page){return(await calls(page)).filter(c=>c[0]==='event');}
+async function downloaded(page:Page,selector:string){
+ const result=page.waitForEvent('download');await page.locator(selector).click();const download=await result;
+ expect((await fs.stat((await download.path())!)).size).toBeGreaterThan(100);
+}
+async function converted(page:Page){await page.locator('#btn-primary-convert').click();await expect(page.locator('#btn-primary-convert')).toBeEnabled({timeout:180000});await expect(page.locator('#converter-success-banner')).toBeVisible();}
+
+test('every desktop/mobile download control emits once, with repeated downloads counted separately',async({page})=>{
+ test.setTimeout(300000);await production(page);
+ for(const width of [1440,390])for(const [url,format]of [['/','png'],['/heic-to-jpg/','jpg'],['/heic-to-avif/','avif']]){
+  await page.setViewportSize({width,height:900});await page.goto(origin+url);await oneView(page);
+  await page.evaluate(()=>{(window as any).downloadFirstCompleted();(window as any).downloadAllAsZip();});expect(await events(page)).toEqual([]);
+  await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');await expect(page.locator('.file-row-item')).toHaveCount(1);expect(await events(page)).toEqual([]);
+  await converted(page);expect(await events(page)).toEqual([]);
+  for(const selector of ['#btn-zip-banner-text','#btn-download-single','.file-row-item button[data-onclick^="downloadConvertedFile"]','#btn-zip-banner-text'])await downloaded(page,selector);
+  await expect.poll(async()=>(await events(page)).length).toBe(4);
+  expect((await events(page)).map(c=>[c[1],c[2].download_type,c[2].output_format])).toEqual(Array(4).fill(['file_download','single',format]));
+  await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');await expect(page.locator('.file-row-item')).toHaveCount(2);
+  await page.evaluate(()=>(window as any).downloadAllAsZip());expect(await events(page)).toHaveLength(4);
+  await converted(page);
+  for(const selector of ['#btn-zip-banner-text','#btn-download-zip','#btn-zip-banner-text'])await downloaded(page,selector);
+  await expect.poll(async()=>(await events(page)).length).toBe(7);
+  expect((await events(page)).slice(4).map(c=>[c[1],c[2].download_type,c[2].output_format])).toEqual(Array(3).fill(['zip_download','zip',format]));
+  for(const call of await events(page))expect(Object.keys(call[2]).sort()).toEqual(['download_type','output_format','page_location','page_referrer','page_title','send_to']);
+  expect(JSON.stringify(await calls(page))).not.toMatch(/example\.heic|image\/|file_size|file_name|file_path|EXIF|ftyp/);
+ }
+});
+
+test('downloads without required consent or after opting out still work and events are not replayed',async({page,context})=>{
+ test.setTimeout(180000);const {requests}=await production(page,{policy:'required'});await page.setViewportSize({width:390,height:900});
+ for(const url of ['/','/heic-to-jpg/','/heic-to-avif/']){
+  await page.goto(origin+url);await page.locator('#real-file-input').setInputFiles(['tests/fixtures/example.heic','tests/fixtures/example.heic']);await converted(page);
+  await downloaded(page,'#btn-download-single');await downloaded(page,'#btn-zip-banner-text');expect(await events(page)).toEqual([]);expect(requests).toEqual([]);
+ }
+ await page.getByRole('link',{name:'Privacy choices',exact:true}).click();await page.getByRole('button',{name:'Turn on analytics',exact:true}).click();await oneView(page);expect(await events(page)).toEqual([]);
+ await page.goto(origin+'/');await oneView(page);await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');await converted(page);await downloaded(page,'#btn-zip-banner-text');await expect.poll(async()=>(await events(page)).length).toBe(1);
+ const privacy=await context.newPage();await privacy.goto(origin+'/privacy/');await privacy.getByRole('button',{name:'Turn off analytics',exact:true}).click();await expect.poll(()=>page.evaluate(()=>(window as any)['ga-disable-G-W3XNRQR60H'])).toBe(true);
+ await downloaded(page,'#btn-download-single');expect(await events(page)).toHaveLength(1);await privacy.close();
+});
+
+test('blocked tags, failed telemetry and unavailable save actions do not create false download events',async({page})=>{
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));const {requests}=await production(page,{blocked:true});await page.goto(origin+'/');await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');await converted(page);
+ await downloaded(page,'#btn-zip-banner-text');expect(requests).toHaveLength(1);expect(await calls(page)).toEqual([]);
+ await production(page);await page.goto(origin+'/');await oneView(page);await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');await converted(page);
+ await page.evaluate(()=>{(window as any).gtag=()=>{throw new Error('blocked telemetry');};});await downloaded(page,'#btn-zip-banner-text');await page.waitForTimeout(50);expect(errors).toEqual([]);
+ await page.reload();await oneView(page);await page.locator('#real-file-input').setInputFiles('tests/fixtures/example.heic');await converted(page);
+ await page.evaluate(()=>{HTMLAnchorElement.prototype.click=function(){throw new Error('save unavailable');};const row=document.querySelector('.file-row-item button[data-onclick^="downloadConvertedFile"]')!;const id=row.getAttribute('data-onclick')!.match(/'([^']+)'/)![1];try{(window as any).downloadConvertedFile(id);}catch{}});
+ await page.waitForTimeout(50);expect(await events(page)).toEqual([]);
+});
+
+test('the event boundary rejects private fields, unknown formats and newly disabled collection',async({page})=>{
+ await production(page);await page.goto(origin+'/');await oneView(page);
+ await page.evaluate(()=>new Promise<void>(resolve=>{const script=document.createElement('script');script.src='/analytics.js';script.dataset.enabled='true';script.onload=()=>resolve();document.head.append(script);}));
+ await page.evaluate(()=>{
+  for(const detail of [{downloadType:'single',outputFormat:'jpg',filename:'PRIVATE_TEST',size:12345,image:'PRIVATE_TEST',exif:'PRIVATE_TEST',error:'PRIVATE_TEST'}, {downloadType:'zip',outputFormat:'PRIVATE_TEST',filename:'PRIVATE_TEST'}, {downloadType:'single',outputFormat:'PRIVATE_TEST'}, {downloadType:'upload',outputFormat:'png'}])document.dispatchEvent(new CustomEvent('heic2png:download',{detail}));
+ });
+ await expect.poll(async()=>(await events(page)).length).toBe(2);const sent=await events(page);expect(sent[0][2]).toMatchObject({download_type:'single',output_format:'jpg'});expect(sent[1][1]).toBe('zip_download');expect(sent[1][2]).not.toHaveProperty('output_format');expect(JSON.stringify(sent)).not.toContain('PRIVATE_TEST');
+ await page.evaluate(()=>{
+  document.dispatchEvent(new CustomEvent('heic2png:download',{detail:{downloadType:'single',outputFormat:'png'}}));
+  Object.defineProperty(navigator,'globalPrivacyControl',{value:true});
+ });await page.waitForTimeout(50);expect(await events(page)).toHaveLength(2);
 });

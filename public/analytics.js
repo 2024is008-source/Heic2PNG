@@ -1,4 +1,4 @@
-// Default-on production analytics, with saved opt-outs and GPC respected.
+// One official Google tag, gated by valid consent or a trusted permission policy.
 (() => {
   if (window.__heicGa4Installed) return;
   window.__heicGa4Installed = true;
@@ -7,8 +7,9 @@
   const key = 'heic2png-analytics-consent-v1'; // Preserve existing opt-outs.
   const lifetime = 180 * 86400000;
   const enabled = document.currentScript?.dataset.enabled === 'true' && location.origin === origin;
-  const blocked = () => navigator.globalPrivacyControl === true;
-  let started = false, revoked = false, rejectedHere = false;
+  const existingOptOut = window['ga-disable-' + id] === true;
+  const blocked = () => existingOptOut || navigator.globalPrivacyControl === true || navigator.doNotTrack === '1' || window.doNotTrack === '1';
+  let started = false, revoked = false, rejectedHere = false, automatic = false;
   window['ga-disable-' + id] = true;
 
   function choice() {
@@ -21,14 +22,14 @@
       return saved.expires > Date.now() ? 'granted' : 'expired';
     } catch { return 'unavailable'; }
   }
-  const permitted = () => enabled && !blocked() && !revoked && !rejectedHere && [null, 'granted', 'expired'].includes(choice());
+  const permitted = () => enabled && !blocked() && !revoked && !rejectedHere && (choice() === 'granted' || (choice() === null && automatic));
   function status(message) {
     const accept = document.querySelector('[data-analytics-preference="granted"]');
     if (accept) accept.disabled = !enabled || blocked();
     const reject = document.querySelector('[data-analytics-preference="denied"]');
     if (reject) reject.disabled = false;
     const output = document.getElementById('analytics-status');
-    if (output) output.textContent = message || (!enabled ? 'Analytics is disabled here.' : blocked() ? 'Global Privacy Control keeps analytics off.' : permitted() ? 'Analytics is on. You can turn analytics off below.' : 'Analytics is off. You can change your preference below.');
+    if (output) output.textContent = message || (!enabled ? 'Analytics is disabled here.' : blocked() ? 'Your browser privacy signal keeps analytics off.' : permitted() ? 'Analytics is on. You can turn analytics off below.' : 'Analytics is off. Choose Turn on analytics to allow Google Analytics cookies.');
   }
   function pageFields() {
     let page = new URL('/404/', origin);
@@ -53,7 +54,9 @@
     window['ga-disable-' + id] = false;
     window.dataLayer = window.dataLayer || [];
     window.gtag = function () { window.dataLayer.push(arguments); };
-    window.gtag('consent', 'default', {analytics_storage: 'granted', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied'});
+    const denied = {analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied'};
+    window.gtag('consent', 'default', denied);
+    window.gtag('consent', 'update', {...denied, analytics_storage: 'granted'});
     window.gtag('set', 'ads_data_redaction', true);
     window.gtag('js', new Date());
     window.gtag('config', id, {...pageFields(), allow_google_signals: false, allow_ad_personalization_signals: false, cookie_domain: 'heic2png.site', cookie_path: '/', cookie_expires: lifetime / 1000, cookie_update: false, cookie_flags: 'SameSite=Lax;Secure'});
@@ -75,8 +78,22 @@
     }
     status();
   }
-  function initialize() {
-    if (permitted()) start(); else stop();
+  async function initialize() {
+    if (!enabled || blocked() || choice() === 'denied') { stop(); return; }
+    if (choice() === 'granted') { start(); return; }
+    if (choice() === null) {
+      // Static pages cannot know a visitor's legal policy. Read only the edge's
+      // permission decision, never an IP/country diagnostic or a browser guess.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2000);
+      try {
+        const response = await fetch(origin + location.pathname, {method: 'HEAD', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error', signal: controller.signal});
+        automatic = response.ok && response.headers.get('X-Analytics-Consent') === 'not-required';
+      } catch { /* Unknown or unavailable policy requires an explicit choice. */ }
+      finally { clearTimeout(timer); }
+    }
+    // A choice or privacy signal may have changed while the request was pending.
+    if (permitted()) start();
     status();
   }
   document.getElementById('analytics-choices')?.addEventListener('click', event => {
@@ -90,7 +107,24 @@
     else if (revoked) status('Choice saved. Analytics can resume on your next page load.');
     else { start(); status(); }
   });
-  window.addEventListener('storage', event => { if (event.key === key || event.key === null) { if (permitted()) start(); else stop(); status(); } });
+  window.addEventListener('storage', event => { if (event.key === key || event.key === null) { automatic = false; if (permitted()) start(); else stop(); status(); } });
+  document.addEventListener('heic2png:download', event => {
+    try {
+      const canSend = () => started && permitted() && window['ga-disable-' + id] !== true && typeof window.gtag === 'function';
+      if (!canSend()) return; // No pre-consent queue or later replay.
+      const {downloadType, outputFormat} = event.detail || {};
+      if (!['single', 'zip'].includes(downloadType)) return;
+      const knownFormat = ['png', 'jpg', 'avif'].includes(outputFormat);
+      if (downloadType === 'single' && !knownFormat) return;
+      const fields = {...pageFields(), download_type: downloadType, send_to: id};
+      if (knownFormat) fields.output_format = outputFormat;
+      // Only allowlisted fields survive; never forward arbitrary event details.
+      // Yield after the native save action and recheck permission before sending.
+      setTimeout(() => {
+        try { if (canSend()) window.gtag('event', downloadType === 'single' ? 'file_download' : 'zip_download', fields); } catch {}
+      }, 0);
+    } catch { /* Analytics must never interrupt a download. */ }
+  });
   function recheck() { if (blocked() || (started && !permitted())) stop(); }
   window.addEventListener('focus', recheck);
   window.addEventListener('pageshow', recheck); // No extra manual page view on BFCache restoration.

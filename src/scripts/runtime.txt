@@ -143,19 +143,28 @@ function removeFileById(id){
  cancelPreview();release(item);fileQueue=fileQueue.filter(x=>x!==item);refresh();prepareNextPreview();
 }
 function clearAllFiles(){generation++;cancelActive?.();cancelPreview();fileQueue.forEach(item=>release(item));fileQueue=[];refresh();dismissErrorBanner();}
-function save(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
-function downloadConvertedFile(id){const item=fileQueue.find(x=>x.id===id);if(item?.blob){save(item.blob,getOutputFilename(item.name));}}
+function downloadFormat(blob){return {'image/png':'png','image/jpeg':'jpg','image/avif':'avif'}[blob.type];}
+function save(blob,name,downloadType,outputFormat){
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;
+ try{a.click();}finally{setTimeout(()=>URL.revokeObjectURL(url),30000);}
+ // Observe only a successful handoff to the browser, never a button click or
+ // download completion. Keep file/name/size/error data out of this event.
+ try{document.dispatchEvent(new CustomEvent('heic2png:download',{detail:{downloadType,outputFormat}}));}catch{}
+}
+function downloadConvertedFile(id){const item=fileQueue.find(x=>x.id===id);if(item?.status==='completed'&&item.blob){save(item.blob,getOutputFilename(item.name),'single',downloadFormat(item.blob));}}
 function downloadFirstCompleted(){const item=fileQueue.find(x=>x.blob);if(item)downloadConvertedFile(item.id);else showToast('Convert a file before downloading.');}
 let zipping=false;
 function canDownloadAll(){return !busy&&!zipping&&fileQueue.length>1&&fileQueue.every(item=>item.status==='completed'&&item.blob);}
 async function downloadAllAsZip(){
  if(!canDownloadAll())return;
  const items=[...fileQueue];
+ const formats=items.map(item=>downloadFormat(item.blob));
+ const outputFormat=formats[0]&&formats.every(format=>format===formats[0])?formats[0]:undefined;
  zipping=true;refresh();
  try{
   const {default:JSZip}=await import('jszip');const zip=new JSZip(), names=new Set();
   for(const item of items){let name=getOutputFilename(item.name),n=2;while(names.has(name.toLowerCase()))name=getOutputFilename(item.name).replace(/\.[^.]+$/,` (${n++}).${currentFormat.toLowerCase()}`);names.add(name.toLowerCase());zip.file(name,item.blob);}
-  save(await zip.generateAsync({type:'blob',compression:'STORE'}),'HEIC2PNG_Batch_'+currentFormat+'.zip');
+  save(await zip.generateAsync({type:'blob',compression:'STORE'}),'HEIC2PNG_Batch_'+currentFormat+'.zip','zip',outputFormat);
  }catch{errorBanner('ZIP creation failed. Download images individually or use a smaller batch.');}
  finally{zipping=false;refresh();}
 }

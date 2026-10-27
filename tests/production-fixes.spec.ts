@@ -64,7 +64,8 @@ test('WOFF2 uses the same families and logo optimization preserves visible pixel
 
 test('keyboard upload works and converter errors expose an alert live region',async({page})=>{
  await page.goto('/');
- await page.locator('#upload-dropzone').focus();const chooser=page.waitForEvent('filechooser');await page.keyboard.press('Enter');
+ const dropzone=page.locator('#upload-dropzone');await dropzone.focus();await expect(dropzone).toBeFocused();
+ const chooser=page.waitForEvent('filechooser');await dropzone.press('Enter');
  await (await chooser).setFiles({name:'invalid.pdf',mimeType:'application/pdf',buffer:Buffer.from('invalid')});
  await expect(page.locator('#converter-error-banner')).toHaveAttribute('role','alert');await expect(page.locator('#converter-error-banner')).toBeVisible();
  await expect(page.locator('#converter-success-banner')).toHaveAttribute('role','status');await expect(page.locator('#app-toast')).toHaveAttribute('role','status');
