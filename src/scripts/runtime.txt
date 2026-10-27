@@ -72,6 +72,7 @@ function refresh(){
 }
 async function ingestUserFiles(files){
  const epoch=generation;
+ let added=false;
  for(const file of [...files]){
   if(epoch!==generation)break;
   if(fileQueue.length>=50){errorBanner('A batch can contain at most 50 files.');break;}
@@ -82,9 +83,17 @@ async function ingestUserFiles(files){
   const text=new TextDecoder('latin1').decode(header);
   if(text.slice(4,8)!=='ftyp'||!/(heic|heix|hevc|hevx|heim|heis|hevm|hevs|mif1|msf1)/.test(text.slice(8))){errorBanner('This file does not contain a HEIC/HEIF container: '+file.name);continue;}
   fileQueue.push({id:crypto.randomUUID(),file,name:file.name,inputSizeMB:file.size/1024/1024,dimensions:'Dimensions available after decoding',colorSpace:'Not inspected',status:'queued',errorMessage:'',progress:0});
+  added=true;
  }
  refresh();
  prepareNextPreview();
+ if(added&&epoch===generation){
+  const section=$('file-list-section');
+  section.setAttribute('tabindex','-1');
+  section.focus({preventScroll:true});
+  const headerHeight=document.querySelector('header')?.getBoundingClientRect().height||0;
+  window.scrollTo({top:Math.max(0,window.scrollY+section.getBoundingClientRect().top-headerHeight-16),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+ }
 }
 function handleRealFileSelect(e){ const files=[...e.target.files];e.target.value='';void ingestUserFiles(files); }
 function handleDragOver(e){e.preventDefault();$('upload-dropzone').classList.add('ring-4','ring-indigo-500/15');}
